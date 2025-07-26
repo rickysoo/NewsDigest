@@ -96,7 +96,7 @@ class NewsService {
             !src.includes('ad') &&
             !alt.toLowerCase().includes('logo') &&
             !alt.toLowerCase().includes('icon') &&
-            src.includes('wp-content/uploads')) {
+            (src.includes('wp-content/uploads') || src.includes('media.freemalaysiatoday'))) {
           
           const fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
           console.log(`[${this.getMalaysiaTime()}] Found potential image: ${fullSrc} (alt: ${alt})`);
@@ -138,8 +138,10 @@ class NewsService {
         if (selector.startsWith('meta')) {
           const metaImg = $(selector).attr('content');
           if (metaImg && !metaImg.includes('logo') && !metaImg.includes('default')) {
-            this.firstArticleImage = metaImg;
-            console.log(`[${this.getMalaysiaTime()}] Extracted meta image: ${metaImg}`);
+            // Convert webp to jpg for better email compatibility
+            const compatibleImg = metaImg.replace('.webp', '.jpg');
+            this.firstArticleImage = compatibleImg;
+            console.log(`[${this.getMalaysiaTime()}] Extracted meta image (converted for email): ${compatibleImg}`);
             return;
           }
         } else {
@@ -744,8 +746,8 @@ class EmailService {
                 <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             </div>
             ${global.newsService && global.newsService.firstArticleImage ? 
-              `<div style="text-align: center; margin-bottom: 2rem;">
-                <img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
+              `<div style="text-align: center; margin: 20px 0; padding: 10px;">
+                <img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 600px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin: 0 auto; border: 1px solid #e2e8f0;" onerror="this.style.display='none'" />
               </div>` : 
               ''}
             
