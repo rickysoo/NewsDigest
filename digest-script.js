@@ -131,12 +131,19 @@ class NewsService {
         // Convert and store locally for better email compatibility
         const localImagePath = await this.imageConverter.downloadAndConvertImage(metaItemprop);
         if (localImagePath) {
-          // Use Replit server URL - use localhost for development, proper domain for production
-          const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-            ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-            : 'http://localhost:5000';
-          this.firstArticleImage = `${baseUrl}${localImagePath}`;
-          console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+          // Convert to base64 for reliable email display
+          const base64Image = await this.imageConverter.getBase64Image(localImagePath);
+          if (base64Image) {
+            this.firstArticleImage = base64Image;
+            console.log(`[${this.getMalaysiaTime()}] Image converted to base64 for email embedding`);
+          } else {
+            // Fallback to URL
+            const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+              : 'http://localhost:5000';
+            this.firstArticleImage = `${baseUrl}${localImagePath}`;
+            console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+          }
         } else {
           this.firstArticleImage = metaItemprop; // Fallback to original
         }
@@ -159,11 +166,17 @@ class NewsService {
           // Convert and store locally for better email compatibility
           const localImagePath = await this.imageConverter.downloadAndConvertImage(imageUrl);
           if (localImagePath) {
-            const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-              ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-              : 'http://localhost:5000';
-            this.firstArticleImage = `${baseUrl}${localImagePath}`;
-            console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+            const base64Image = await this.imageConverter.getBase64Image(localImagePath);
+            if (base64Image) {
+              this.firstArticleImage = base64Image;
+              console.log(`[${this.getMalaysiaTime()}] Image converted to base64 for email embedding`);
+            } else {
+              const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+                ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+                : 'http://localhost:5000';
+              this.firstArticleImage = `${baseUrl}${localImagePath}`;
+              console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+            }
           } else {
             this.firstArticleImage = imageUrl; // Fallback to original
           }
@@ -190,11 +203,17 @@ class NewsService {
             // Convert and store locally for better email compatibility
             const localImagePath = await this.imageConverter.downloadAndConvertImage(metaImg);
             if (localImagePath) {
-              const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-                ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-                : 'http://localhost:5000';
-              this.firstArticleImage = `${baseUrl}${localImagePath}`;
-              console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+              const base64Image = await this.imageConverter.getBase64Image(localImagePath);
+              if (base64Image) {
+                this.firstArticleImage = base64Image;
+                console.log(`[${this.getMalaysiaTime()}] Image converted to base64 for email embedding`);
+              } else {
+                const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+                  ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+                  : 'http://localhost:5000';
+                this.firstArticleImage = `${baseUrl}${localImagePath}`;
+                console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+              }
             } else {
               this.firstArticleImage = metaImg; // Fallback to original
             }
@@ -210,11 +229,17 @@ class NewsService {
               // Convert and store locally for better email compatibility
               const localImagePath = await this.imageConverter.downloadAndConvertImage(fullSrc);
               if (localImagePath) {
-                const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-                  ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-                  : 'http://localhost:5000';
-                this.firstArticleImage = `${baseUrl}${localImagePath}`;
-                console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+                const base64Image = await this.imageConverter.getBase64Image(localImagePath);
+                if (base64Image) {
+                  this.firstArticleImage = base64Image;
+                  console.log(`[${this.getMalaysiaTime()}] Image converted to base64 for email embedding`);
+                } else {
+                  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+                    ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+                    : 'http://localhost:5000';
+                  this.firstArticleImage = `${baseUrl}${localImagePath}`;
+                  console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+                }
               } else {
                 this.firstArticleImage = fullSrc; // Fallback to original
               }

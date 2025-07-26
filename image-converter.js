@@ -87,6 +87,18 @@ class ImageConverter {
     });
   }
 
+  async getBase64Image(imagePath) {
+    try {
+      const fullPath = path.join(__dirname, 'public', imagePath);
+      const imageBuffer = fs.readFileSync(fullPath);
+      const base64String = imageBuffer.toString('base64');
+      return `data:image/jpeg;base64,${base64String}`;
+    } catch (error) {
+      console.error(`[${this.getMalaysiaTime()}] Error converting image to base64: ${error.message}`);
+      return null;
+    }
+  }
+
   // Clean up old images (keep only last 10)
   cleanupOldImages() {
     try {
