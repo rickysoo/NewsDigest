@@ -2,7 +2,18 @@
 ## FMT News Digest System
 
 **Last Updated:** July 26, 2025  
-**Version:** 1.1 (Security Enhanced)
+**Version:** 1.1 (Security Enhanced)  
+**Security Level:** HIGH (upgraded from MEDIUM)
+
+## Overview for Contributors
+
+This document outlines the comprehensive security measures implemented in the FMT News Digest system. Before contributing, please review these implementations to maintain security standards and understand the protection mechanisms in place.
+
+### GitHub Safety Status: ✅ READY
+- No hardcoded credentials in source code
+- All sensitive configuration via environment variables
+- Template files provide setup guidance without exposing secrets
+- Comprehensive input sanitization protects against common attacks
 
 ---
 
@@ -130,3 +141,53 @@ Before deployment, ensure:
 5. **Keep dependencies updated** with security patches
 
 The system now implements industry-standard security practices and is ready for responsible deployment.
+
+---
+
+## For Contributors: Security Implementation Guide
+
+### Understanding the Security Architecture
+
+**Input Sanitization Layer:**
+- Located in `digest-script.js` within the `NewsService.sanitizeContent()` method
+- Protects against XSS, injection attacks, and malicious content
+- All scraped content passes through this filter
+
+**Rate Limiting System:**
+- Implemented in `digest-script.js` as `RateLimiter` class
+- Protects OpenAI API, HTTP requests, and email sending
+- Prevents abuse and manages resource consumption
+
+**Credential Management:**
+- All sensitive data must be in environment variables
+- No fallback credentials allowed in source code
+- Validation enforced by `start-digest.sh` script
+
+**Error Handling Security:**
+- Sensitive data filtered from all log messages
+- Email addresses masked in logs for privacy
+- Error message length limits prevent information leakage
+
+### Contributing Security Guidelines
+
+1. **Never commit credentials** - All sensitive data via environment variables only
+2. **Test security features** - Use `./start-digest.sh` to validate environment setup
+3. **Maintain input sanitization** - Don't bypass the content filtering system
+4. **Preserve rate limiting** - Don't remove or increase rate limit protections
+5. **Secure error handling** - Ensure new error messages don't leak sensitive data
+
+### Security Testing
+
+Before submitting changes:
+```bash
+# Test environment validation
+./start-digest.sh
+
+# Test with missing credentials (should fail gracefully)
+OPENAI_API_KEY="" ./start-digest.sh
+
+# Test digest generation
+node digest-script.js --test
+```
+
+This ensures your changes maintain the security posture of the system.

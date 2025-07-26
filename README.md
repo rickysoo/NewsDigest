@@ -252,10 +252,19 @@ node digest-script.js --test
 
 1. Fork the repository
 2. Create a feature branch
-3. Review security guidelines in `SECURITY_AUDIT.md`
+3. Review security implementation in `SECURITY_STATUS.md`
 4. Implement changes with proper error handling
 5. Test thoroughly with `node digest-service.js test`
 6. Submit a pull request
+
+### Security Guidelines for Contributors
+
+Before making changes:
+- Read `SECURITY_STATUS.md` to understand implemented security measures
+- Never commit credentials or sensitive data
+- All configuration must use environment variables
+- Test security features with `./start-digest.sh` validation
+- Ensure rate limiting and input sanitization remain intact
 
 ## License
 
@@ -271,4 +280,4 @@ For issues and questions:
 
 ---
 
-**Note**: This system is designed for personal/educational use. Review security audit before production deployment.
+**Note**: This system is designed for personal/educational use. Review `SECURITY_STATUS.md` to understand security implementation before production deployment.
