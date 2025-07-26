@@ -25,11 +25,11 @@ import { dirname } from 'path';
 // Configuration
 const config = {
   openaiApiKey: process.env.OPENAI_API_KEY,
-  emailUser: process.env.EMAIL_USER,
-  emailPass: process.env.EMAIL_PASS,
-  recipientEmail: process.env.RECIPIENT_EMAIL,
-  smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
-  smtpPort: parseInt(process.env.SMTP_PORT || '587'),
+  emailUser: process.env.EMAIL_USER || 'ricky@rickysoo.com',
+  emailPass: process.env.SMTP_PASSWORD,
+  recipientEmail: process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com',
+  smtpHost: process.env.SMTP_HOST || 'mail.rickysoo.com',
+  smtpPort: parseInt(process.env.SMTP_PORT || '465'),
   maxArticles: 10,
   targetWords: 500
 };
@@ -39,7 +39,7 @@ const openai = new OpenAI({ apiKey: config.openaiApiKey });
 const transporter = nodemailer.createTransport({
   host: config.smtpHost,
   port: config.smtpPort,
-  secure: false,
+  secure: true, // SSL for port 465
   auth: {
     user: config.emailUser,
     pass: config.emailPass,
@@ -410,8 +410,19 @@ async function main() {
   console.log(`- SMTP: ${config.smtpHost}:${config.smtpPort}`);
   
   // Validate required environment variables
-  const requiredVars = ['OPENAI_API_KEY', 'EMAIL_USER', 'EMAIL_PASS', 'RECIPIENT_EMAIL'];
+  const requiredVars = ['OPENAI_API_KEY'];
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  // Check email configuration
+  if (!config.emailPass) {
+    missingVars.push('SMTP_PASSWORD');
+  }
+  if (!config.emailUser) {
+    missingVars.push('EMAIL_USER');
+  }
+  if (!config.recipientEmail) {
+    missingVars.push('RECIPIENT_EMAIL');
+  }
   
   if (missingVars.length > 0) {
     console.error('\n❌ Missing required environment variables:');
