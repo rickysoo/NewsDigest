@@ -160,9 +160,7 @@ The system includes robust service management:
 ├── start-digest.sh          # Production startup script
 ├── .env.example             # Environment variable template
 ├── package.json             # Dependencies and scripts
-├── README.md                # Project documentation
-├── SECURITY_STATUS.md       # Security implementation status
-└── replit.md                # Technical architecture notes
+└── README.md                # Project documentation
 ```
 
 **Runtime files (created during operation):**
@@ -252,7 +250,7 @@ node digest-script.js --test
 
 1. Fork the repository
 2. Create a feature branch
-3. Review security implementation in `SECURITY_STATUS.md`
+3. Follow security best practices outlined below
 4. Implement changes with proper error handling
 5. Test thoroughly with `node digest-service.js test`
 6. Submit a pull request
@@ -260,11 +258,11 @@ node digest-script.js --test
 ### Security Guidelines for Contributors
 
 Before making changes:
-- Read `SECURITY_STATUS.md` to understand implemented security measures
 - Never commit credentials or sensitive data
 - All configuration must use environment variables
 - Test security features with `./start-digest.sh` validation
 - Ensure rate limiting and input sanitization remain intact
+- Follow secure coding practices for external API interactions
 
 ## License
 
@@ -280,4 +278,4 @@ For issues and questions:
 
 ---
 
-**Note**: This system is designed for personal/educational use. Review `SECURITY_STATUS.md` to understand security implementation before production deployment.
+**Note**: This system is designed for personal/educational use. Ensure proper environment variable configuration and review security features before production deployment.
