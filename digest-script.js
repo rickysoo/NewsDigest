@@ -122,7 +122,35 @@ class NewsService {
       const html = await response.text();
       const $ = cheerio.load(html);
       
-      // More comprehensive image search for the specific article
+      // First, try to find meta content with direct image URLs
+      const metaItemprop = $('meta[itemprop="url"]').attr('content');
+      if (metaItemprop && metaItemprop.includes('wp-content/uploads')) {
+        const jpgUrl = metaItemprop.replace('.webp', '.jpg');
+        console.log(`[${this.getMalaysiaTime()}] Found meta itemprop image: ${jpgUrl}`);
+        this.firstArticleImage = jpgUrl;
+        return;
+      }
+      
+      // Look for images in content areas
+      const contentImages = $('.entry-content img, .post-content img, article img, .html-img').toArray();
+      for (const imgElement of contentImages) {
+        const src = $(imgElement).attr('src') || $(imgElement).attr('data-src');
+        if (src && 
+            (src.includes('wp-content/uploads') || src.includes('media.freemalaysiatoday')) &&
+            !src.includes('logo') && 
+            !src.includes('icon') &&
+            !src.includes('avatar')) {
+          
+          let imageUrl = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+          const jpgUrl = imageUrl.replace('.webp', '.jpg');
+          
+          console.log(`[${this.getMalaysiaTime()}] Found content image: ${jpgUrl}`);
+          this.firstArticleImage = jpgUrl;
+          return;
+        }
+      }
+      
+      // Fallback to meta tags and other selectors
       const advancedSelectors = [
         'meta[property="og:image"]',
         'meta[name="twitter:image"]',
@@ -130,8 +158,7 @@ class NewsService {
         '.featured-image img',
         '.post-thumbnail img',
         '.single-featured-image img',
-        '.entry-header img',
-        '.entry-content img:first-of-type'
+        '.entry-header img'
       ];
       
       for (const selector of advancedSelectors) {
@@ -147,9 +174,13 @@ class NewsService {
         } else {
           const img = $(selector).first();
           if (img.length) {
-            const src = img.attr('src') || img.attr('data-src');
-            if (src && !src.includes('logo') && !src.includes('icon')) {
-              const fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+            const src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
+            if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
+              let fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+              // Convert webp to jpg for email compatibility
+              if (fullSrc.includes('.webp')) {
+                fullSrc = fullSrc.replace('.webp', '.jpg');
+              }
               this.firstArticleImage = fullSrc;
               console.log(`[${this.getMalaysiaTime()}] Extracted article image: ${fullSrc}`);
               return;
@@ -746,9 +777,13 @@ class EmailService {
                 <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             </div>
             ${global.newsService && global.newsService.firstArticleImage ? 
-              `<div style="text-align: center; margin: 20px 0; padding: 10px;">
-                <img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 600px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin: 0 auto; border: 1px solid #e2e8f0;" onerror="this.style.display='none'" />
-              </div>` : 
+              `<table width="100%" style="margin: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <img src="${global.newsService.firstArticleImage}" alt="Featured News Image" width="600" style="max-width: 600px; width: 100%; height: auto; border-radius: 8px; display: block; border: 1px solid #e2e8f0;" />
+                  </td>
+                </tr>
+              </table>` : 
               ''}
             
             <h2 class="digest-title">${digest.title}</h2>
