@@ -491,18 +491,21 @@ class EmailService {
   }
 
   formatDigestEmail(digest) {
-    // Malaysia Time (GMT+8)
-    const malaysiaTime = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
-    const currentDate = malaysiaTime.toLocaleDateString("en-MY", {
+    // Get current time in Malaysia timezone
+    const now = new Date();
+    const currentDate = now.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
       timeZone: "Asia/Kuala_Lumpur"
     });
-    const generatedTime = malaysiaTime.toLocaleTimeString("en-MY", {
+    const generatedTime = now.toLocaleTimeString("en-US", {
       timeZone: "Asia/Kuala_Lumpur",
-      hour12: true
+      hour12: true,
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit"
     });
 
     return `
@@ -527,9 +530,9 @@ class EmailService {
 <body>
     <div class="container">        
         <div class="content">
-            <div class="date-header">${currentDate}</div>
+            <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             <div class="stats">
-                ${digest.wordCount} words • Generated ${generatedTime} MYT
+                ${digest.wordCount} words
             </div>
             
             <h2 class="digest-title">${digest.title}</h2>
