@@ -561,7 +561,7 @@ class EmailService {
       await transporter.sendMail({
         from: config.emailUser,
         to: recipientEmail,
-        subject: `${digest.title} - FMT News`,
+        subject: `FMT News - ${digest.title}`,
         html: emailContent,
         text: this.stripHtml(emailContent),
       });
@@ -667,11 +667,13 @@ class EmailService {
     <div class="container">        
         <div class="content">
             <div class="header-section" style="text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0;">
-                ${global.newsService && global.newsService.firstArticleImage ? 
-                  `<img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 100%; max-height: 200px; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />` : 
-                  ''}
                 <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             </div>
+            ${global.newsService && global.newsService.firstArticleImage ? 
+              `<div style="text-align: center; margin-bottom: 2rem;">
+                <img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
+              </div>` : 
+              ''}
             
             <h2 class="digest-title">${digest.title}</h2>
             
