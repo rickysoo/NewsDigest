@@ -5,7 +5,7 @@ An automated news digest system that scrapes the latest articles from Free Malay
 ## Features
 
 - **Automated News Scraping**: Fetches latest articles from FMT website
-- **AI-Powered Summarization**: Uses OpenAI GPT-4o to create intelligent, coherent digests
+- **AI-Powered Summarization**: Uses OpenAI GPT-4o-mini to create intelligent, coherent digests
 - **Malaysian News Priority**: Filters and prioritizes domestic Malaysian news content
 - **Email Delivery**: Sends HTML-formatted digests via SMTP
 - **Scheduled Operation**: Runs every 3 hours starting at midnight (12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm)
@@ -17,7 +17,7 @@ An automated news digest system that scrapes the latest articles from Free Malay
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   NewsService   │    │   AIService     │    │  EmailService   │
 │                 │    │                 │    │                 │
-│ • FMT Scraping  │───▶│ • OpenAI GPT-4o │───▶│ • SMTP Delivery │
+│ • FMT Scraping  │───▶│ • OpenAI GPT-4o-mini │───▶│ • SMTP Delivery │
 │ • Content Parse │    │ • Digest Gen.   │    │ • HTML Format   │
 │ • MY News Focus │    │ • 500 words     │    │ • Clean Design  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
@@ -78,7 +78,7 @@ node digest-service.js test
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key for GPT-4o | **Required** |
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4o-mini | **Required** |
 | `SMTP_PASSWORD` | SMTP server password | **Required** |
 | `EMAIL_USER` | Sender email address | **Required** |
 | `RECIPIENT_EMAIL` | Recipient email address | **Required** |
@@ -129,7 +129,7 @@ The system includes robust service management:
 
 ### Core Dependencies
 - **cheerio**: HTML parsing for web scraping
-- **openai**: AI-powered digest generation  
+- **openai**: AI-powered digest generation (GPT-4o-mini)  
 - **nodemailer**: Email delivery via SMTP
 - **node-cron**: Scheduled task execution
 
