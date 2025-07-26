@@ -91,7 +91,7 @@ function start() {
   setTimeout(() => {
     if (existsSync(PID_FILE)) {
       console.log('✅ Service started successfully');
-      console.log(`📧 Sending to: ricky@rickysoo.com`);
+      console.log(`📧 Sending to: ${process.env.RECIPIENT_EMAIL || '[EMAIL_USER]'}`);
       console.log(`📅 Schedule: Every 3 hours (12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm)`);
       console.log(`📝 Logs: ${LOG_FILE}`);
       console.log(`🛑 To stop: node digest-service.js stop`);
@@ -132,7 +132,7 @@ function status() {
     try {
       process.kill(pid, 0); // Check if process exists
       console.log(`✅ Service is running (PID: ${pid})`);
-      console.log(`📧 Recipient: ricky@rickysoo.com`);
+      console.log(`📧 Recipient: ${process.env.RECIPIENT_EMAIL || '[EMAIL_USER]'}`);
       console.log(`📅 Next digest times: 12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm`);
     } catch (error) {
       console.log('❌ Service is not running (stale PID file)');
@@ -147,11 +147,20 @@ function status() {
 function test() {
   console.log('🧪 Running test digest...');
   
-  // Set environment variables
-  process.env.EMAIL_USER = process.env.EMAIL_USER || 'ricky@rickysoo.com';
-  process.env.RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com';
-  process.env.SMTP_HOST = process.env.SMTP_HOST || 'mail.rickysoo.com';
-  process.env.SMTP_PORT = process.env.SMTP_PORT || '465';
+  // Validate required environment variables for test
+  const requiredEnvVars = ['EMAIL_USER', 'RECIPIENT_EMAIL', 'SMTP_PASSWORD', 'OPENAI_API_KEY'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.log('❌ Missing required environment variables for test:');
+    missingVars.forEach(varName => console.log(`   - ${varName}`));
+    console.log('\nPlease set these environment variables before running the test.');
+    process.exit(1);
+  }
+
+  // Set optional environment variables with secure defaults
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+  process.env.SMTP_PORT = process.env.SMTP_PORT || '587';
 
   const child = spawn('node', [SCRIPT_PATH, '--test'], {
     stdio: 'inherit'
