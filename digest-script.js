@@ -95,16 +95,22 @@ class NewsService {
 
   async fetchLatestNews(limit = 10) {
     try {
-      console.log(`[${this.getMalaysiaTime()}] Fetching latest news from FMT...`);
+      console.log(`[${this.getMalaysiaTime()}] Fetching latest news from FMT (past 6 hours)...`);
       
-      const response = await fetch(this.FMT_BASE_URL);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Fetch both domestic and international news
+      const [domesticResponse, internationalResponse] = await Promise.all([
+        fetch(this.FMT_BASE_URL),
+        fetch(`${this.FMT_BASE_URL}/category/world/`)
+      ]);
+      
+      if (!domesticResponse.ok) {
+        throw new Error(`HTTP error! status: ${domesticResponse.status}`);
       }
 
-      const html = await response.text();
-      const $ = cheerio.load(html);
+      const domesticHtml = await domesticResponse.text();
+      const $ = cheerio.load(domesticHtml);
       const articles = [];
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
       // Extract image from first article for email
       const firstArticleImage = this.extractImageFromArticle($);
@@ -113,10 +119,11 @@ class NewsService {
       }
 
       // FMT news article selectors
-      $("article, .news-item, .post-item").slice(0, limit).each((_, element) => {
+      $("article, .news-item, .post-item").slice(0, limit * 2).each((_, element) => {
         const $element = $(element);
         const titleElement = $element.find("h1, h2, h3, .title, .headline").first();
         const linkElement = $element.find("a").first();
+        const timeElement = $element.find("time, .date, .published, .timestamp").first();
         
         const title = titleElement.text().trim();
         const relativeUrl = linkElement.attr("href");
@@ -124,16 +131,85 @@ class NewsService {
         if (title && relativeUrl) {
           const url = relativeUrl.startsWith("http") ? relativeUrl : `${this.FMT_BASE_URL}${relativeUrl}`;
           
-          articles.push({
-            title,
-            url,
-            content: "", // Will be filled by fetchArticleContent
-            publishedAt: new Date().toISOString()
-          });
+          // Try to extract publish time
+          let publishedAt = new Date();
+          const timeText = timeElement.text().trim();
+          const timeAttr = timeElement.attr('datetime');
+          
+          if (timeAttr) {
+            publishedAt = new Date(timeAttr);
+          } else if (timeText) {
+            // Parse relative times like "2 hours ago", "30 minutes ago"
+            const timeMatch = timeText.match(/(\d+)\s*(hour|minute)s?\s*ago/i);
+            if (timeMatch) {
+              const value = parseInt(timeMatch[1]);
+              const unit = timeMatch[2].toLowerCase();
+              const msAgo = unit === 'hour' ? value * 60 * 60 * 1000 : value * 60 * 1000;
+              publishedAt = new Date(Date.now() - msAgo);
+            }
+          }
+          
+          // Only include articles from the past 6 hours
+          if (publishedAt >= sixHoursAgo) {
+            articles.push({
+              title,
+              url,
+              content: "", // Will be filled by fetchArticleContent
+              publishedAt: publishedAt.toISOString(),
+              category: 'domestic'
+            });
+          }
         }
       });
 
-      console.log(`[${this.getMalaysiaTime()}] Found ${articles.length} articles, fetching content...`);
+      // Also fetch some international news for the final paragraph
+      if (internationalResponse.ok) {
+        const internationalHtml = await internationalResponse.text();
+        const $intl = cheerio.load(internationalHtml);
+        
+        $intl("article, .news-item, .post-item").slice(0, 5).each((_, element) => {
+          const $element = $intl(element);
+          const titleElement = $element.find("h1, h2, h3, .title, .headline").first();
+          const linkElement = $element.find("a").first();
+          const timeElement = $element.find("time, .date, .published, .timestamp").first();
+          
+          const title = titleElement.text().trim();
+          const relativeUrl = linkElement.attr("href");
+          
+          if (title && relativeUrl && articles.length < limit + 3) {
+            const url = relativeUrl.startsWith("http") ? relativeUrl : `${this.FMT_BASE_URL}${relativeUrl}`;
+            
+            let publishedAt = new Date();
+            const timeText = timeElement.text().trim();
+            const timeAttr = timeElement.attr('datetime');
+            
+            if (timeAttr) {
+              publishedAt = new Date(timeAttr);
+            } else if (timeText) {
+              const timeMatch = timeText.match(/(\d+)\s*(hour|minute)s?\s*ago/i);
+              if (timeMatch) {
+                const value = parseInt(timeMatch[1]);
+                const unit = timeMatch[2].toLowerCase();
+                const msAgo = unit === 'hour' ? value * 60 * 60 * 1000 : value * 60 * 1000;
+                publishedAt = new Date(Date.now() - msAgo);
+              }
+            }
+            
+            // Include recent international news
+            if (publishedAt >= sixHoursAgo) {
+              articles.push({
+                title,
+                url,
+                content: "", // Will be filled by fetchArticleContent
+                publishedAt: publishedAt.toISOString(),
+                category: 'international'
+              });
+            }
+          }
+        });
+      }
+
+      console.log(`[${this.getMalaysiaTime()}] Found ${articles.length} articles from past 6 hours, fetching content...`);
 
       // Fetch full content for each article
       const articlesWithContent = await Promise.all(
@@ -165,7 +241,7 @@ class NewsService {
         return bScore - aScore; // Higher score first
       });
       
-      console.log(`[${this.getMalaysiaTime()}] Successfully processed ${prioritizedArticles.length} articles (prioritized Malaysian news)`);
+      console.log(`[${this.getMalaysiaTime()}] Successfully processed ${prioritizedArticles.length} articles from past 6 hours (prioritized Malaysian news)`);
       
       return prioritizedArticles;
     } catch (error) {
@@ -341,26 +417,27 @@ class AIService {
         .map((article, index) => `${index + 1}. ${article.title}\n${article.content}\n`)
         .join("\n");
 
-      const prompt = `You are a professional news editor creating a comprehensive daily digest specifically focused on Malaysian news and events for Malaysian readers. 
+      const prompt = `You are a professional news editor creating a comprehensive news digest from the latest Malaysian articles published in the past 6 hours for Malaysian readers. 
 
-Please analyze the following ${articles.length} news articles from Free Malaysia Today and create a cohesive ${config.targetWords}-word digest that:
+Please analyze the following ${articles.length} recent news articles from Free Malaysia Today and create a cohesive ${config.targetWords}-word digest that:
 
-1. PRIORITIZES Malaysian domestic news, politics, economics, and social issues
+1. PRIORITIZES Malaysian domestic news, politics, economics, and social issues from the past 6 hours
 2. Provides a concise, engaging title (under 50 characters for email subjects)
-3. Focuses heavily on news that directly impacts Malaysia and Malaysians
+3. Focuses heavily on breaking news and recent developments that directly impact Malaysia and Malaysians
 4. Groups related Malaysian stories into coherent sections
-5. Only briefly mentions international news if it has direct Malaysian relevance
+5. INCLUDES a final paragraph briefly mentioning relevant international news that affects Malaysia
 6. Uses clear, engaging language suitable for Malaysian readers
-7. Maintains an objective, journalistic tone
+7. Maintains an objective, journalistic tone with emphasis on recent developments
 8. Format content as HTML paragraphs and sections
+9. Highlight the recency and urgency of the news when appropriate
 
-Articles to summarize:
+Recent articles to summarize (from past 6 hours):
 ${articlesText}
 
 Please respond with JSON in this exact format:
 {
-  "title": "Brief compelling title focusing on Malaysian news (under 50 chars)",
-  "content": "Your ${config.targetWords}-word digest content formatted as HTML with <h3> for sections and <p> for paragraphs, prioritizing Malaysian domestic news"
+  "title": "Brief compelling title focusing on recent Malaysian news (under 50 chars)",
+  "content": "Your ${config.targetWords}-word digest content formatted as HTML with <h3> for sections and <p> for paragraphs, prioritizing recent Malaysian domestic news with international news mentioned in final paragraph"
 }`;
 
       // Using GPT-4o-mini for cost efficiency as requested by user
