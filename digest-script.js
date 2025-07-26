@@ -56,7 +56,7 @@ class NewsService {
 
   async fetchLatestNews(limit = 10) {
     try {
-      console.log(`[${new Date().toISOString()}] Fetching latest news from FMT...`);
+      console.log(`[${this.getMalaysiaTime()}] Fetching latest news from FMT...`);
       
       const response = await fetch(this.FMT_BASE_URL);
       if (!response.ok) {
@@ -88,7 +88,7 @@ class NewsService {
         }
       });
 
-      console.log(`[${new Date().toISOString()}] Found ${articles.length} articles, fetching content...`);
+      console.log(`[${this.getMalaysiaTime()}] Found ${articles.length} articles, fetching content...`);
 
       // Fetch full content for each article
       const articlesWithContent = await Promise.all(
@@ -120,11 +120,11 @@ class NewsService {
         return bScore - aScore; // Higher score first
       });
       
-      console.log(`[${new Date().toISOString()}] Successfully processed ${prioritizedArticles.length} articles (prioritized Malaysian news)`);
+      console.log(`[${this.getMalaysiaTime()}] Successfully processed ${prioritizedArticles.length} articles (prioritized Malaysian news)`);
       
       return prioritizedArticles;
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error fetching FMT news:`, error.message);
+      console.error(`[${this.getMalaysiaTime()}] Error fetching FMT news:`, error.message);
       throw new Error("Failed to fetch news articles from FMT");
     }
   }
@@ -194,6 +194,19 @@ class NewsService {
     
     return score;
   }
+
+  getMalaysiaTime() {
+    return new Date().toLocaleString("en-MY", {
+      timeZone: "Asia/Kuala_Lumpur",
+      year: "numeric",
+      month: "2-digit", 
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+  }
 }
 
 /**
@@ -202,7 +215,7 @@ class NewsService {
 class AIService {
   async generateDigest(articles) {
     try {
-      console.log(`[${new Date().toISOString()}] Generating AI digest from ${articles.length} articles...`);
+      console.log(`[${this.getMalaysiaTime()}] Generating AI digest from ${articles.length} articles...`);
       
       const articlesText = articles
         .map((article, index) => `${index + 1}. ${article.title}\n${article.content}\n`)
@@ -255,7 +268,7 @@ Please respond with JSON in this exact format:
       }
 
       const wordCount = result.content.split(/\s+/).length;
-      console.log(`[${new Date().toISOString()}] AI digest generated successfully (${wordCount} words)`);
+      console.log(`[${this.getMalaysiaTime()}] AI digest generated successfully (${wordCount} words)`);
 
       return {
         title: result.title,
@@ -263,9 +276,22 @@ Please respond with JSON in this exact format:
         wordCount
       };
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error generating AI digest:`, error.message);
+      console.error(`[${this.getMalaysiaTime()}] Error generating AI digest:`, error.message);
       throw new Error("Failed to generate AI digest: " + error.message);
     }
+  }
+
+  getMalaysiaTime() {
+    return new Date().toLocaleString("en-MY", {
+      timeZone: "Asia/Kuala_Lumpur",
+      year: "numeric",
+      month: "2-digit", 
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
   }
 }
 
@@ -275,7 +301,7 @@ Please respond with JSON in this exact format:
 class EmailService {
   async sendDigest(digest, recipientEmail) {
     try {
-      console.log(`[${new Date().toISOString()}] Sending digest email to ${recipientEmail}...`);
+      console.log(`[${this.getMalaysiaTime()}] Sending digest email to ${recipientEmail}...`);
       
       const emailContent = this.formatDigestEmail(digest);
       
@@ -287,20 +313,40 @@ class EmailService {
         text: this.stripHtml(emailContent),
       });
 
-      console.log(`[${new Date().toISOString()}] Email sent successfully to ${recipientEmail}`);
+      console.log(`[${this.getMalaysiaTime()}] Email sent successfully to ${recipientEmail}`);
       return { success: true };
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error sending email to ${recipientEmail}:`, error.message);
+      console.error(`[${this.getMalaysiaTime()}] Error sending email to ${recipientEmail}:`, error.message);
       return { success: false, error: error.message };
     }
   }
 
+  getMalaysiaTime() {
+    return new Date().toLocaleString("en-MY", {
+      timeZone: "Asia/Kuala_Lumpur",
+      year: "numeric",
+      month: "2-digit", 
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+  }
+
   formatDigestEmail(digest) {
-    const currentDate = new Date().toLocaleDateString("en-US", {
+    // Malaysia Time (GMT+8)
+    const malaysiaTime = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
+    const currentDate = malaysiaTime.toLocaleDateString("en-MY", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: "Asia/Kuala_Lumpur"
+    });
+    const generatedTime = malaysiaTime.toLocaleTimeString("en-MY", {
+      timeZone: "Asia/Kuala_Lumpur",
+      hour12: true
     });
 
     return `
@@ -313,27 +359,21 @@ class EmailService {
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8fafc; }
         .container { max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 2rem; text-align: center; }
-        .header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
-        .header p { margin: 0.5rem 0 0 0; opacity: 0.9; }
         .content { padding: 2rem; }
-        .digest-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b; }
+        .digest-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
         .digest-content { font-size: 1rem; line-height: 1.7; margin-bottom: 2rem; }
         .digest-content p { margin-bottom: 1rem; }
         .footer { background-color: #f1f5f9; padding: 1.5rem; text-align: center; font-size: 0.875rem; color: #64748b; border-top: 1px solid #e2e8f0; }
-        .stats { background-color: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #64748b; }
+        .stats { background-color: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #64748b; text-align: center; }
+        .date-header { font-size: 0.875rem; color: #64748b; margin-bottom: 1rem; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>FMT News Digest</h1>
-            <p>${currentDate}</p>
-        </div>
-        
+    <div class="container">        
         <div class="content">
+            <div class="date-header">${currentDate}</div>
             <div class="stats">
-                ${digest.wordCount} words • Generated ${new Date().toLocaleTimeString()}
+                ${digest.wordCount} words • Generated ${generatedTime} MYT
             </div>
             
             <h2 class="digest-title">${digest.title}</h2>
@@ -363,10 +403,26 @@ class EmailService {
       await transporter.verify();
       return true;
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Email connection test failed:`, error.message);
+      console.error(`[${getMalaysiaTime()}] Email connection test failed:`, error.message);
       return false;
     }
   }
+}
+
+/**
+ * Helper function to get Malaysia time
+ */
+function getMalaysiaTime() {
+  return new Date().toLocaleString("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit", 
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
 }
 
 /**
@@ -374,7 +430,7 @@ class EmailService {
  */
 async function generateAndSendDigest() {
   const startTime = new Date();
-  console.log(`\n[${startTime.toISOString()}] ==================== DIGEST GENERATION STARTED ====================`);
+  console.log(`\n[${getMalaysiaTime()}] ==================== DIGEST GENERATION STARTED ====================`);
   
   try {
     // Validate configuration
@@ -415,16 +471,15 @@ async function generateAndSendDigest() {
     if (emailResult.success) {
       const endTime = new Date();
       const duration = Math.round((endTime - startTime) / 1000);
-      console.log(`[${endTime.toISOString()}] ==================== DIGEST GENERATION COMPLETED (${duration}s) ====================\n`);
+      console.log(`[${getMalaysiaTime()}] ==================== DIGEST GENERATION COMPLETED (${duration}s) ====================\n`);
     } else {
       throw new Error(`Email delivery failed: ${emailResult.error}`);
     }
 
   } catch (error) {
-    const endTime = new Date();
-    console.error(`[${endTime.toISOString()}] ==================== DIGEST GENERATION FAILED ====================`);
-    console.error(`[${endTime.toISOString()}] Error: ${error.message}`);
-    console.error(`[${endTime.toISOString()}] ================================================================\n`);
+    console.error(`[${getMalaysiaTime()}] ==================== DIGEST GENERATION FAILED ====================`);
+    console.error(`[${getMalaysiaTime()}] Error: ${error.message}`);
+    console.error(`[${getMalaysiaTime()}] ================================================================\n`);
   }
 }
 
