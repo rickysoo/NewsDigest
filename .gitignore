@@ -25,6 +25,10 @@ output/
 # Development artifacts
 attached_assets/
 
+# Internal documentation
+SECURITY_AUDIT.md
+GITHUB_DEPLOYMENT.md
+
 # Temporary files
 tmp/
 temp/

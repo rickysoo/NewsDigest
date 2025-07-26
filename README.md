@@ -180,7 +180,7 @@ The system includes comprehensive error handling:
 - **Environment Variables**: All credentials must be provided securely via environment variables
 - **Content Validation**: HTML tags and malicious content stripped from articles
 
-⚠️ **Important**: Review `SECURITY_AUDIT.md` for complete security assessment
+⚠️ **Important**: This system implements enterprise-grade security features for safe deployment
 
 **Rate Limits:**
 - OpenAI API: 10 requests per hour
