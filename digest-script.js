@@ -849,8 +849,6 @@ class EmailService {
               </table>` : 
               ''}
             
-            <h2 class="digest-title">${digest.title}</h2>
-            
             <div class="digest-content">
                 ${digest.content}
             </div>
