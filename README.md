@@ -78,12 +78,14 @@ node digest-service.js test
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key for GPT-4o | Required |
-| `SMTP_PASSWORD` | SMTP server password | Required |
-| `EMAIL_USER` | Sender email address | `ricky@rickysoo.com` |
-| `RECIPIENT_EMAIL` | Recipient email address | `ricky@rickysoo.com` |
-| `SMTP_HOST` | SMTP server hostname | `mail.rickysoo.com` |
-| `SMTP_PORT` | SMTP server port | `465` |
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4o | **Required** |
+| `SMTP_PASSWORD` | SMTP server password | **Required** |
+| `EMAIL_USER` | Sender email address | **Required** |
+| `RECIPIENT_EMAIL` | Recipient email address | **Required** |
+| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP server port | `587` |
+
+**⚠️ Security Note:** All sensitive configuration must be provided via environment variables. No credentials should be hardcoded in source files.
 
 ### Customization
 
@@ -169,16 +171,21 @@ The system includes comprehensive error handling:
 - **Detailed error logging** for debugging
 - **Service recovery** capabilities
 
-## Security Considerations
+## Security Features
 
-⚠️ **Important**: Review `SECURITY_AUDIT.md` before deployment
+✅ **Security Enhancements Implemented:**
+- **Input Sanitization**: All scraped content is sanitized to prevent XSS and injection attacks
+- **Rate Limiting**: Built-in limits for API calls and email sending to prevent abuse
+- **Secure Error Logging**: Sensitive information filtered from error messages and logs
+- **Environment Variables**: All credentials must be provided securely via environment variables
+- **Content Validation**: HTML tags and malicious content stripped from articles
 
-Key security recommendations:
-- Use environment variables for all credentials
-- Implement input sanitization for scraped content
-- Enable HTTPS verification for external requests
-- Regular dependency security updates
-- Encrypt sensitive log data
+⚠️ **Important**: Review `SECURITY_AUDIT.md` for complete security assessment
+
+**Rate Limits:**
+- OpenAI API: 10 requests per hour
+- HTTP Requests: 50 requests per hour  
+- Email Sending: 25 emails per day
 
 ## Performance
 

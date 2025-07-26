@@ -25,13 +25,26 @@ import { dirname } from 'path';
 // Configuration
 const config = {
   openaiApiKey: process.env.OPENAI_API_KEY,
-  emailUser: process.env.EMAIL_USER || 'ricky@rickysoo.com',
+  emailUser: process.env.EMAIL_USER,
   emailPass: process.env.SMTP_PASSWORD,
-  recipientEmail: process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com',
-  smtpHost: process.env.SMTP_HOST || 'mail.rickysoo.com',
-  smtpPort: parseInt(process.env.SMTP_PORT || '465'),
+  recipientEmail: process.env.RECIPIENT_EMAIL,
+  smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587'),
   maxArticles: 10,
-  targetWords: 500
+  targetWords: 500,
+  // Rate limiting configuration
+  rateLimits: {
+    openaiRequests: 10, // Max 10 requests per hour
+    httpRequests: 50,   // Max 50 HTTP requests per hour
+    emailsSent: 25      // Max 25 emails per day
+  }
+};
+
+// Rate limiting tracking
+const rateLimitTracker = {
+  openai: { requests: 0, resetTime: Date.now() + 3600000 }, // 1 hour
+  http: { requests: 0, resetTime: Date.now() + 3600000 },   // 1 hour  
+  email: { requests: 0, resetTime: Date.now() + 86400000 }  // 24 hours
 };
 
 // Initialize services
@@ -131,10 +144,16 @@ class NewsService {
 
   async fetchArticleContent(url) {
     try {
+      // Check rate limits
+      if (!this.checkRateLimit('http')) {
+        throw new Error('HTTP request rate limit exceeded');
+      }
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+        },
+        timeout: 10000 // 10 second timeout
       });
       
       if (!response.ok) {
@@ -171,11 +190,45 @@ class NewsService {
         content = $("p").map((_, el) => $(el).text().trim()).get().join(" ");
       }
 
-      return content.slice(0, 2000); // Limit content length
+      // Sanitize content to prevent XSS and injection attacks
+      return this.sanitizeContent(content.slice(0, 2000));
     } catch (error) {
-      console.error(`Error fetching article content from ${url}:`, error.message);
+      // Secure error logging - don't log URLs or sensitive info
+      console.error(`Error fetching article content: ${this.sanitizeErrorMessage(error.message)}`);
       return "";
     }
+  }
+
+  checkRateLimit(type) {
+    const tracker = rateLimitTracker[type];
+    const now = Date.now();
+    
+    // Reset counter if time window has passed
+    if (now > tracker.resetTime) {
+      tracker.requests = 0;
+      tracker.resetTime = now + (type === 'email' ? 86400000 : 3600000);
+    }
+    
+    // Check if under limit
+    const limit = config.rateLimits[type + (type === 'email' ? 'Sent' : 'Requests')];
+    if (tracker.requests >= limit) {
+      return false;
+    }
+    
+    tracker.requests++;
+    return true;
+  }
+
+  sanitizeErrorMessage(message) {
+    if (!message) return 'Unknown error';
+    
+    // Remove potentially sensitive information from error messages
+    return message
+      .replace(/https?:\/\/[^\s]+/g, '[URL]')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
+      .replace(/api[_-]?key[s]?[=:]\s*[^\s]+/gi, 'api_key=[REDACTED]')
+      .slice(0, 200); // Limit length
   }
 
   calculateMalaysianRelevanceScore(article, keywords) {
@@ -193,6 +246,28 @@ class NewsService {
     }
     
     return score;
+  }
+
+  sanitizeContent(content) {
+    if (!content || typeof content !== 'string') return '';
+    
+    return content
+      // Remove any HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Remove script content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      // Remove style content
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      // Remove potentially dangerous characters
+      .replace(/[<>&"']/g, (char) => {
+        const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#x27;' };
+        return entities[char];
+      })
+      // Remove control characters
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Limit line length and normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   getMalaysiaTime() {
@@ -215,6 +290,11 @@ class NewsService {
 class AIService {
   async generateDigest(articles) {
     try {
+      // Check rate limits for OpenAI API
+      if (!this.checkRateLimit('openai')) {
+        throw new Error('OpenAI API rate limit exceeded');
+      }
+
       console.log(`[${this.getMalaysiaTime()}] Generating AI digest from ${articles.length} articles...`);
       
       const articlesText = articles
@@ -276,9 +356,41 @@ Please respond with JSON in this exact format:
         wordCount
       };
     } catch (error) {
-      console.error(`[${this.getMalaysiaTime()}] Error generating AI digest:`, error.message);
-      throw new Error("Failed to generate AI digest: " + error.message);
+      console.error(`[${this.getMalaysiaTime()}] Error generating AI digest:`, this.sanitizeErrorMessage(error.message));
+      throw new Error("Failed to generate AI digest: " + this.sanitizeErrorMessage(error.message));
     }
+  }
+
+  checkRateLimit(type) {
+    const tracker = rateLimitTracker[type];
+    const now = Date.now();
+    
+    // Reset counter if time window has passed
+    if (now > tracker.resetTime) {
+      tracker.requests = 0;
+      tracker.resetTime = now + (type === 'email' ? 86400000 : 3600000);
+    }
+    
+    // Check if under limit
+    const limit = config.rateLimits[type + (type === 'email' ? 'Sent' : 'Requests')];
+    if (tracker.requests >= limit) {
+      return false;
+    }
+    
+    tracker.requests++;
+    return true;
+  }
+
+  sanitizeErrorMessage(message) {
+    if (!message) return 'Unknown error';
+    
+    // Remove potentially sensitive information from error messages
+    return message
+      .replace(/https?:\/\/[^\s]+/g, '[URL]')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
+      .replace(/api[_-]?key[s]?[=:]\s*[^\s]+/gi, 'api_key=[REDACTED]')
+      .slice(0, 200); // Limit length
   }
 
   getMalaysiaTime() {
@@ -301,7 +413,12 @@ Please respond with JSON in this exact format:
 class EmailService {
   async sendDigest(digest, recipientEmail) {
     try {
-      console.log(`[${this.getMalaysiaTime()}] Sending digest email to ${recipientEmail}...`);
+      // Check rate limits for email sending
+      if (!this.checkRateLimit('email')) {
+        throw new Error('Email sending rate limit exceeded');
+      }
+
+      console.log(`[${this.getMalaysiaTime()}] Sending digest email to ${this.sanitizeEmailForLogging(recipientEmail)}...`);
       
       const emailContent = this.formatDigestEmail(digest);
       
@@ -313,12 +430,51 @@ class EmailService {
         text: this.stripHtml(emailContent),
       });
 
-      console.log(`[${this.getMalaysiaTime()}] Email sent successfully to ${recipientEmail}`);
+      console.log(`[${this.getMalaysiaTime()}] Email sent successfully to ${this.sanitizeEmailForLogging(recipientEmail)}`);
       return { success: true };
     } catch (error) {
-      console.error(`[${this.getMalaysiaTime()}] Error sending email to ${recipientEmail}:`, error.message);
-      return { success: false, error: error.message };
+      console.error(`[${this.getMalaysiaTime()}] Error sending email:`, this.sanitizeErrorMessage(error.message));
+      return { success: false, error: this.sanitizeErrorMessage(error.message) };
     }
+  }
+
+  sanitizeEmailForLogging(email) {
+    if (!email) return '[NO_EMAIL]';
+    const parts = email.split('@');
+    if (parts.length !== 2) return '[INVALID_EMAIL]';
+    return `${parts[0].slice(0, 2)}***@${parts[1]}`;
+  }
+
+  checkRateLimit(type) {
+    const tracker = rateLimitTracker[type];
+    const now = Date.now();
+    
+    // Reset counter if time window has passed
+    if (now > tracker.resetTime) {
+      tracker.requests = 0;
+      tracker.resetTime = now + (type === 'email' ? 86400000 : 3600000);
+    }
+    
+    // Check if under limit
+    const limit = config.rateLimits[type + (type === 'email' ? 'Sent' : 'Requests')];
+    if (tracker.requests >= limit) {
+      return false;
+    }
+    
+    tracker.requests++;
+    return true;
+  }
+
+  sanitizeErrorMessage(message) {
+    if (!message) return 'Unknown error';
+    
+    // Remove potentially sensitive information from error messages
+    return message
+      .replace(/https?:\/\/[^\s]+/g, '[URL]')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
+      .replace(/api[_-]?key[s]?[=:]\s*[^\s]+/gi, 'api_key=[REDACTED]')
+      .slice(0, 200); // Limit length
   }
 
   getMalaysiaTime() {
