@@ -35,11 +35,11 @@ function start() {
 
   log(`Starting ${SERVICE_NAME}...`);
 
-  // Set environment variables
-  process.env.EMAIL_USER = 'ricky@rickysoo.com';
-  process.env.RECIPIENT_EMAIL = 'ricky@rickysoo.com';
-  process.env.SMTP_HOST = 'mail.rickysoo.com';
-  process.env.SMTP_PORT = '465';
+  // Set environment variables (only if not already set)
+  process.env.EMAIL_USER = process.env.EMAIL_USER || 'ricky@rickysoo.com';
+  process.env.RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com';
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'mail.rickysoo.com';
+  process.env.SMTP_PORT = process.env.SMTP_PORT || '465';
 
   // Spawn the digest script
   const child = spawn('node', [SCRIPT_PATH], {
@@ -138,10 +138,10 @@ function test() {
   console.log('🧪 Running test digest...');
   
   // Set environment variables
-  process.env.EMAIL_USER = 'ricky@rickysoo.com';
-  process.env.RECIPIENT_EMAIL = 'ricky@rickysoo.com';
-  process.env.SMTP_HOST = 'mail.rickysoo.com';
-  process.env.SMTP_PORT = '465';
+  process.env.EMAIL_USER = process.env.EMAIL_USER || 'ricky@rickysoo.com';
+  process.env.RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com';
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'mail.rickysoo.com';
+  process.env.SMTP_PORT = process.env.SMTP_PORT || '465';
 
   const child = spawn('node', [SCRIPT_PATH, '--test'], {
     stdio: 'inherit'

@@ -8,6 +8,15 @@ This is a full-stack web application that automatically generates and distribute
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**July 26, 2025 - Security Audit and Documentation**
+- Completed comprehensive security and privacy audit
+- Created professional README.md for GitHub publishing
+- Identified and partially addressed critical security issues
+- Added .gitignore for sensitive file protection
+- Improved credential management in digest-service.js
+
 ## System Architecture
 
 ### Frontend Architecture
