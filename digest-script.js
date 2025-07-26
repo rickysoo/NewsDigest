@@ -69,28 +69,95 @@ class NewsService {
   }
 
   extractImageFromArticle($) {
-    // Try to find the main article image
+    // Try to find the main article image with better filtering
     const imageSelectors = [
+      '.wp-post-image',
       '.featured-image img',
       '.post-thumbnail img',
       '.article-image img',
-      '.wp-post-image',
-      'article img',
+      '.single-post-thumbnail img',
       '.entry-content img:first-of-type',
       'img[class*="featured"]',
-      'img[class*="thumbnail"]'
+      'img[class*="attachment"]',
+      'article img:first-of-type'
     ];
     
     for (const selector of imageSelectors) {
       const img = $(selector).first();
       if (img.length) {
-        const src = img.attr('src') || img.attr('data-src');
-        if (src && !src.includes('logo') && !src.includes('icon')) {
-          return src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+        const src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
+        const alt = img.attr('alt') || '';
+        
+        // Filter out logos, icons, ads, and unrelated images
+        if (src && 
+            !src.includes('logo') && 
+            !src.includes('icon') && 
+            !src.includes('avatar') &&
+            !src.includes('ad') &&
+            !alt.toLowerCase().includes('logo') &&
+            !alt.toLowerCase().includes('icon') &&
+            src.includes('wp-content/uploads')) {
+          
+          const fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+          console.log(`[${this.getMalaysiaTime()}] Found potential image: ${fullSrc} (alt: ${alt})`);
+          return fullSrc;
         }
       }
     }
     return null;
+  }
+
+  async extractImageFromUrl(url) {
+    try {
+      console.log(`[${this.getMalaysiaTime()}] Attempting direct image extraction from: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      if (!response.ok) return;
+      
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      
+      // More comprehensive image search for the specific article
+      const advancedSelectors = [
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        '.wp-post-image',
+        '.featured-image img',
+        '.post-thumbnail img',
+        '.single-featured-image img',
+        '.entry-header img',
+        '.entry-content img:first-of-type'
+      ];
+      
+      for (const selector of advancedSelectors) {
+        if (selector.startsWith('meta')) {
+          const metaImg = $(selector).attr('content');
+          if (metaImg && !metaImg.includes('logo') && !metaImg.includes('default')) {
+            this.firstArticleImage = metaImg;
+            console.log(`[${this.getMalaysiaTime()}] Extracted meta image: ${metaImg}`);
+            return;
+          }
+        } else {
+          const img = $(selector).first();
+          if (img.length) {
+            const src = img.attr('src') || img.attr('data-src');
+            if (src && !src.includes('logo') && !src.includes('icon')) {
+              const fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+              this.firstArticleImage = fullSrc;
+              console.log(`[${this.getMalaysiaTime()}] Extracted article image: ${fullSrc}`);
+              return;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[${this.getMalaysiaTime()}] Error in direct image extraction: ${error.message}`);
+    }
   }
 
   async fetchLatestNews(limit = 10) {
@@ -247,8 +314,15 @@ class NewsService {
         // Extract image specifically from the top prioritized article
         try {
           console.log(`[${this.getMalaysiaTime()}] Fetching image from top article: ${this.topArticle.title}`);
+          console.log(`[${this.getMalaysiaTime()}] Top article URL: ${this.topArticle.url}`);
           const topArticleContent = await this.fetchArticleContent(this.topArticle.url, true);
           this.topArticle.content = topArticleContent;
+          
+          // If no image found yet, try a more thorough search
+          if (!this.firstArticleImage) {
+            console.log(`[${this.getMalaysiaTime()}] No image found, trying additional extraction methods...`);
+            await this.extractImageFromUrl(this.topArticle.url);
+          }
         } catch (error) {
           console.error(`Error fetching top article image: ${error.message}`);
         }
