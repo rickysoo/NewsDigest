@@ -65,24 +65,27 @@ const transporter = nodemailer.createTransport({
 class NewsService {
   constructor() {
     this.FMT_BASE_URL = "https://www.freemalaysiatoday.com";
-    this.fmtLogoUrl = "https://www.freemalaysiatoday.com/wp-content/uploads/2019/07/FMT-logo-new2.png";
+    this.firstArticleImage = null;
   }
 
-  extractLogoUrl($) {
-    // Try to find FMT logo in the page
-    const logoSelectors = [
-      'img[alt*="FMT"]',
-      'img[src*="logo"]',
-      '.logo img',
-      'header img',
-      '.site-logo img'
+  extractImageFromArticle($) {
+    // Try to find the main article image
+    const imageSelectors = [
+      '.featured-image img',
+      '.post-thumbnail img',
+      '.article-image img',
+      '.wp-post-image',
+      'article img',
+      '.entry-content img:first-of-type',
+      'img[class*="featured"]',
+      'img[class*="thumbnail"]'
     ];
     
-    for (const selector of logoSelectors) {
-      const logoImg = $(selector).first();
-      if (logoImg.length) {
-        const src = logoImg.attr('src');
-        if (src) {
+    for (const selector of imageSelectors) {
+      const img = $(selector).first();
+      if (img.length) {
+        const src = img.attr('src') || img.attr('data-src');
+        if (src && !src.includes('logo') && !src.includes('icon')) {
           return src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
         }
       }
@@ -103,10 +106,10 @@ class NewsService {
       const $ = cheerio.load(html);
       const articles = [];
 
-      // Extract FMT logo for email
-      const logoUrl = this.extractLogoUrl($);
-      if (logoUrl) {
-        this.fmtLogoUrl = logoUrl;
+      // Extract image from first article for email
+      const firstArticleImage = this.extractImageFromArticle($);
+      if (firstArticleImage) {
+        this.firstArticleImage = firstArticleImage;
       }
 
       // FMT news article selectors
@@ -134,9 +137,9 @@ class NewsService {
 
       // Fetch full content for each article
       const articlesWithContent = await Promise.all(
-        articles.map(async (article) => {
+        articles.map(async (article, index) => {
           try {
-            const content = await this.fetchArticleContent(article.url);
+            const content = await this.fetchArticleContent(article.url, index === 0);
             return { ...article, content };
           } catch (error) {
             console.error(`Error fetching content for ${article.url}:`, error.message);
@@ -171,7 +174,7 @@ class NewsService {
     }
   }
 
-  async fetchArticleContent(url) {
+  async fetchArticleContent(url, isFirstArticle = false) {
     try {
       // Check rate limits
       if (!this.checkRateLimit('http')) {
@@ -191,6 +194,14 @@ class NewsService {
 
       const html = await response.text();
       const $ = cheerio.load(html);
+
+      // If this is the first article and we don't have an image yet, try to extract one
+      if (isFirstArticle && !this.firstArticleImage) {
+        const articleImage = this.extractImageFromArticle($);
+        if (articleImage) {
+          this.firstArticleImage = articleImage;
+        }
+      }
 
       // Remove unwanted elements
       $("script, style, nav, header, footer, .advertisement, .ads, .social-share").remove();
@@ -560,7 +571,9 @@ class EmailService {
     <div class="container">        
         <div class="content">
             <div class="header-section" style="text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0;">
-                <img src="${global.newsService ? global.newsService.fmtLogoUrl : 'https://www.freemalaysiatoday.com/wp-content/uploads/2019/07/FMT-logo-new2.png'}" alt="Free Malaysia Today" style="max-height: 60px; margin-bottom: 1rem;" />
+                ${global.newsService && global.newsService.firstArticleImage ? 
+                  `<img src="${global.newsService.firstArticleImage}" alt="Featured News Image" style="max-width: 100%; max-height: 200px; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />` : 
+                  ''}
                 <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             </div>
             
