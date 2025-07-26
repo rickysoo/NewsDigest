@@ -104,9 +104,25 @@ class NewsService {
       );
 
       const validArticles = articlesWithContent.filter(article => article.title.length > 10);
-      console.log(`[${new Date().toISOString()}] Successfully processed ${validArticles.length} articles`);
       
-      return validArticles;
+      // Prioritize Malaysian domestic news
+      const malaysianKeywords = [
+        'malaysia', 'malaysian', 'kuala lumpur', 'kl', 'putrajaya', 'selangor', 'johor', 'penang', 'sabah', 'sarawak',
+        'prime minister', 'pm', 'anwar', 'mahathir', 'najib', 'dap', 'umno', 'pas', 'pkr', 'parliament', 'dewan rakyat',
+        'ringgit', 'bursa', 'klse', 'bank negara', 'bnm', 'gst', 'sst', 'budget', 'felda', 'petronas', 'proton',
+        'genting', 'pahang', 'kedah', 'perlis', 'terengganu', 'kelantan', 'melaka', 'negeri sembilan', 'perak',
+        'labuan', 'mca', 'mic', 'gerakan', 'bersatu', 'warisan', 'gps', 'bn', 'ph', 'pn'
+      ];
+      
+      const prioritizedArticles = validArticles.sort((a, b) => {
+        const aScore = this.calculateMalaysianRelevanceScore(a, malaysianKeywords);
+        const bScore = this.calculateMalaysianRelevanceScore(b, malaysianKeywords);
+        return bScore - aScore; // Higher score first
+      });
+      
+      console.log(`[${new Date().toISOString()}] Successfully processed ${prioritizedArticles.length} articles (prioritized Malaysian news)`);
+      
+      return prioritizedArticles;
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error fetching FMT news:`, error.message);
       throw new Error("Failed to fetch news articles from FMT");
@@ -161,6 +177,23 @@ class NewsService {
       return "";
     }
   }
+
+  calculateMalaysianRelevanceScore(article, keywords) {
+    const text = (article.title + " " + article.content).toLowerCase();
+    let score = 0;
+    
+    keywords.forEach(keyword => {
+      const occurrences = (text.match(new RegExp(keyword.toLowerCase(), 'g')) || []).length;
+      score += occurrences;
+    });
+    
+    // Boost score for articles with Malaysian locations/politics
+    if (text.includes('malaysia') || text.includes('malaysian')) {
+      score += 10;
+    }
+    
+    return score;
+  }
 }
 
 /**
@@ -175,23 +208,26 @@ class AIService {
         .map((article, index) => `${index + 1}. ${article.title}\n${article.content}\n`)
         .join("\n");
 
-      const prompt = `You are a professional news editor creating a comprehensive daily digest for Malaysian readers. 
+      const prompt = `You are a professional news editor creating a comprehensive daily digest specifically focused on Malaysian news and events for Malaysian readers. 
 
 Please analyze the following ${articles.length} news articles from Free Malaysia Today and create a cohesive ${config.targetWords}-word digest that:
 
-1. Provides a compelling title that captures the day's key themes
-2. Summarizes the most important stories while maintaining factual accuracy
-3. Groups related stories into coherent sections
-4. Uses clear, engaging language suitable for email newsletters
-5. Maintains an objective, journalistic tone
+1. PRIORITIZES Malaysian domestic news, politics, economics, and social issues
+2. Provides a concise, engaging title (under 50 characters for email subjects)
+3. Focuses heavily on news that directly impacts Malaysia and Malaysians
+4. Groups related Malaysian stories into coherent sections
+5. Only briefly mentions international news if it has direct Malaysian relevance
+6. Uses clear, engaging language suitable for Malaysian readers
+7. Maintains an objective, journalistic tone
+8. Format content as HTML paragraphs and sections
 
 Articles to summarize:
 ${articlesText}
 
 Please respond with JSON in this exact format:
 {
-  "title": "Your compelling digest title here",
-  "content": "Your ${config.targetWords}-word digest content here, formatted with proper paragraphs and sections"
+  "title": "Brief compelling title focusing on Malaysian news (under 50 chars)",
+  "content": "Your ${config.targetWords}-word digest content formatted as HTML with <h3> for sections and <p> for paragraphs, prioritizing Malaysian domestic news"
 }`;
 
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -291,19 +327,19 @@ class EmailService {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🗞️ FMT News Digest</h1>
+            <h1>FMT News Digest</h1>
             <p>${currentDate}</p>
         </div>
         
         <div class="content">
             <div class="stats">
-                📊 ${digest.wordCount} words • Generated ${new Date().toLocaleTimeString()}
+                ${digest.wordCount} words • Generated ${new Date().toLocaleTimeString()}
             </div>
             
             <h2 class="digest-title">${digest.title}</h2>
             
             <div class="digest-content">
-                ${this.formatContentWithParagraphs(digest.content)}
+                ${digest.content}
             </div>
         </div>
         
@@ -316,12 +352,7 @@ class EmailService {
 </html>`;
   }
 
-  formatContentWithParagraphs(content) {
-    return content
-      .split(/\n\s*\n/)
-      .map(paragraph => `<p>${paragraph.trim()}</p>`)
-      .join("");
-  }
+
 
   stripHtml(html) {
     return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ");
