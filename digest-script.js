@@ -2,7 +2,7 @@
 
 /**
  * FMT News Digest Script
- * Automatically generates and emails news digests every 3 hours starting at 12am
+ * Automatically generates and emails news digests 3 times daily at 8am, 4pm, 12am MYT
  * 
  * Usage: node digest-script.js
  * 
@@ -992,12 +992,12 @@ async function main() {
 
   console.log('\n✅ Configuration valid. Setting up scheduler...');
 
-  // Schedule to run every 3 hours starting at midnight
-  // Cron expression: "0 */3 * * *" means at minute 0 of every 3rd hour
-  const cronExpression = '0 */3 * * *';
+  // Schedule to run 3 times daily at 8am, 4pm, 12am Malaysia Time
+  // Cron expression: "0 0,8,16 * * *" means at minute 0 of hours 0 (12am), 8 (8am), and 16 (4pm)
+  const cronExpression = '0 0,8,16 * * *';
   
-  console.log(`📅 Scheduling digest generation: ${cronExpression} (every 3 hours starting at midnight)`);
-  console.log('🔄 Next runs will be at: 12:00 AM, 3:00 AM, 6:00 AM, 9:00 AM, 12:00 PM, 3:00 PM, 6:00 PM, 9:00 PM');
+  console.log(`📅 Scheduling digest generation: ${cronExpression} (3 times daily)`);
+  console.log('🔄 Scheduled runs: 8:00 AM, 4:00 PM, 12:00 AM (Malaysia Time)');
   
   // Schedule the job
   cron.schedule(cronExpression, generateAndSendDigest, {

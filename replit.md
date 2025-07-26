@@ -25,6 +25,7 @@ Preferred communication style: Simple, everyday language.
 - Fixed README.md documentation inconsistency: removed reference to missing SECURITY_AUDIT.md file
 - Made SECURITY_STATUS.md private by removing all public references and adding to .gitignore
 - Updated public documentation to use generic security guidelines instead of referencing private files
+- Updated schedule to 3 times daily at 8am, 4pm, 12am Malaysia Time (changed from every 3 hours)
 
 ## System Architecture
 
