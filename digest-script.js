@@ -125,9 +125,9 @@ class NewsService {
       // First, try to find meta content with direct image URLs
       const metaItemprop = $('meta[itemprop="url"]').attr('content');
       if (metaItemprop && metaItemprop.includes('wp-content/uploads')) {
-        const jpgUrl = metaItemprop.replace('.webp', '.jpg');
-        console.log(`[${this.getMalaysiaTime()}] Found meta itemprop image: ${jpgUrl}`);
-        this.firstArticleImage = jpgUrl;
+        // Use the original WebP URL since JPG conversion may not exist
+        console.log(`[${this.getMalaysiaTime()}] Found meta itemprop image: ${metaItemprop}`);
+        this.firstArticleImage = metaItemprop;
         return;
       }
       
@@ -142,10 +142,9 @@ class NewsService {
             !src.includes('avatar')) {
           
           let imageUrl = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
-          const jpgUrl = imageUrl.replace('.webp', '.jpg');
           
-          console.log(`[${this.getMalaysiaTime()}] Found content image: ${jpgUrl}`);
-          this.firstArticleImage = jpgUrl;
+          console.log(`[${this.getMalaysiaTime()}] Found content image: ${imageUrl}`);
+          this.firstArticleImage = imageUrl;
           return;
         }
       }
@@ -165,10 +164,9 @@ class NewsService {
         if (selector.startsWith('meta')) {
           const metaImg = $(selector).attr('content');
           if (metaImg && !metaImg.includes('logo') && !metaImg.includes('default')) {
-            // Convert webp to jpg for better email compatibility
-            const compatibleImg = metaImg.replace('.webp', '.jpg');
-            this.firstArticleImage = compatibleImg;
-            console.log(`[${this.getMalaysiaTime()}] Extracted meta image (converted for email): ${compatibleImg}`);
+            // Use original image format since many email clients now support WebP
+            this.firstArticleImage = metaImg;
+            console.log(`[${this.getMalaysiaTime()}] Extracted meta image: ${metaImg}`);
             return;
           }
         } else {
@@ -177,10 +175,6 @@ class NewsService {
             const src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
             if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
               let fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
-              // Convert webp to jpg for email compatibility
-              if (fullSrc.includes('.webp')) {
-                fullSrc = fullSrc.replace('.webp', '.jpg');
-              }
               this.firstArticleImage = fullSrc;
               console.log(`[${this.getMalaysiaTime()}] Extracted article image: ${fullSrc}`);
               return;
