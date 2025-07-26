@@ -1,0 +1,468 @@
+#!/usr/bin/env node
+
+/**
+ * FMT News Digest Script
+ * Automatically generates and emails news digests every 3 hours starting at 12am
+ * 
+ * Usage: node digest-script.js
+ * 
+ * Environment Variables Required:
+ * - OPENAI_API_KEY: Your OpenAI API key
+ * - EMAIL_USER: Your email address (for sending)
+ * - EMAIL_PASS: Your email password/app password
+ * - RECIPIENT_EMAIL: Email address to receive digests
+ * - SMTP_HOST: SMTP server (default: smtp.gmail.com)
+ * - SMTP_PORT: SMTP port (default: 587)
+ */
+
+import cron from 'node-cron';
+import * as cheerio from 'cheerio';
+import OpenAI from 'openai';
+import nodemailer from 'nodemailer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Configuration
+const config = {
+  openaiApiKey: process.env.OPENAI_API_KEY,
+  emailUser: process.env.EMAIL_USER,
+  emailPass: process.env.EMAIL_PASS,
+  recipientEmail: process.env.RECIPIENT_EMAIL,
+  smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587'),
+  maxArticles: 10,
+  targetWords: 500
+};
+
+// Initialize services
+const openai = new OpenAI({ apiKey: config.openaiApiKey });
+const transporter = nodemailer.createTransport({
+  host: config.smtpHost,
+  port: config.smtpPort,
+  secure: false,
+  auth: {
+    user: config.emailUser,
+    pass: config.emailPass,
+  },
+});
+
+/**
+ * News scraping service
+ */
+class NewsService {
+  constructor() {
+    this.FMT_BASE_URL = "https://www.freemalaysiatoday.com";
+  }
+
+  async fetchLatestNews(limit = 10) {
+    try {
+      console.log(`[${new Date().toISOString()}] Fetching latest news from FMT...`);
+      
+      const response = await fetch(this.FMT_BASE_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      const articles = [];
+
+      // FMT news article selectors
+      $("article, .news-item, .post-item").slice(0, limit).each((_, element) => {
+        const $element = $(element);
+        const titleElement = $element.find("h1, h2, h3, .title, .headline").first();
+        const linkElement = $element.find("a").first();
+        
+        const title = titleElement.text().trim();
+        const relativeUrl = linkElement.attr("href");
+        
+        if (title && relativeUrl) {
+          const url = relativeUrl.startsWith("http") ? relativeUrl : `${this.FMT_BASE_URL}${relativeUrl}`;
+          
+          articles.push({
+            title,
+            url,
+            content: "", // Will be filled by fetchArticleContent
+            publishedAt: new Date().toISOString()
+          });
+        }
+      });
+
+      console.log(`[${new Date().toISOString()}] Found ${articles.length} articles, fetching content...`);
+
+      // Fetch full content for each article
+      const articlesWithContent = await Promise.all(
+        articles.map(async (article) => {
+          try {
+            const content = await this.fetchArticleContent(article.url);
+            return { ...article, content };
+          } catch (error) {
+            console.error(`Error fetching content for ${article.url}:`, error.message);
+            return { ...article, content: article.title }; // Fallback to title
+          }
+        })
+      );
+
+      const validArticles = articlesWithContent.filter(article => article.title.length > 10);
+      console.log(`[${new Date().toISOString()}] Successfully processed ${validArticles.length} articles`);
+      
+      return validArticles;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error fetching FMT news:`, error.message);
+      throw new Error("Failed to fetch news articles from FMT");
+    }
+  }
+
+  async fetchArticleContent(url) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Remove unwanted elements
+      $("script, style, nav, header, footer, .advertisement, .ads, .social-share").remove();
+
+      // Extract main content
+      const contentSelectors = [
+        ".entry-content",
+        ".post-content",
+        ".article-content", 
+        ".content",
+        "main article",
+        ".story-body"
+      ];
+
+      let content = "";
+      for (const selector of contentSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+          content = element.text().trim();
+          break;
+        }
+      }
+
+      // If no content found, try paragraph tags
+      if (!content) {
+        content = $("p").map((_, el) => $(el).text().trim()).get().join(" ");
+      }
+
+      return content.slice(0, 2000); // Limit content length
+    } catch (error) {
+      console.error(`Error fetching article content from ${url}:`, error.message);
+      return "";
+    }
+  }
+}
+
+/**
+ * AI service for generating digests
+ */
+class AIService {
+  async generateDigest(articles) {
+    try {
+      console.log(`[${new Date().toISOString()}] Generating AI digest from ${articles.length} articles...`);
+      
+      const articlesText = articles
+        .map((article, index) => `${index + 1}. ${article.title}\n${article.content}\n`)
+        .join("\n");
+
+      const prompt = `You are a professional news editor creating a comprehensive daily digest for Malaysian readers. 
+
+Please analyze the following ${articles.length} news articles from Free Malaysia Today and create a cohesive ${config.targetWords}-word digest that:
+
+1. Provides a compelling title that captures the day's key themes
+2. Summarizes the most important stories while maintaining factual accuracy
+3. Groups related stories into coherent sections
+4. Uses clear, engaging language suitable for email newsletters
+5. Maintains an objective, journalistic tone
+
+Articles to summarize:
+${articlesText}
+
+Please respond with JSON in this exact format:
+{
+  "title": "Your compelling digest title here",
+  "content": "Your ${config.targetWords}-word digest content here, formatted with proper paragraphs and sections"
+}`;
+
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert news editor specializing in creating engaging, accurate news digests. Always respond with valid JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1000,
+        temperature: 0.7,
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+      
+      if (!result.title || !result.content) {
+        throw new Error("Invalid response format from OpenAI");
+      }
+
+      const wordCount = result.content.split(/\s+/).length;
+      console.log(`[${new Date().toISOString()}] AI digest generated successfully (${wordCount} words)`);
+
+      return {
+        title: result.title,
+        content: result.content,
+        wordCount
+      };
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error generating AI digest:`, error.message);
+      throw new Error("Failed to generate AI digest: " + error.message);
+    }
+  }
+}
+
+/**
+ * Email service for sending digests
+ */
+class EmailService {
+  async sendDigest(digest, recipientEmail) {
+    try {
+      console.log(`[${new Date().toISOString()}] Sending digest email to ${recipientEmail}...`);
+      
+      const emailContent = this.formatDigestEmail(digest);
+      
+      await transporter.sendMail({
+        from: config.emailUser,
+        to: recipientEmail,
+        subject: `FMT News Digest: ${digest.title}`,
+        html: emailContent,
+        text: this.stripHtml(emailContent),
+      });
+
+      console.log(`[${new Date().toISOString()}] Email sent successfully to ${recipientEmail}`);
+      return { success: true };
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error sending email to ${recipientEmail}:`, error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  formatDigestEmail(digest) {
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMT News Digest</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8fafc; }
+        .container { max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 2rem; text-align: center; }
+        .header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+        .header p { margin: 0.5rem 0 0 0; opacity: 0.9; }
+        .content { padding: 2rem; }
+        .digest-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b; }
+        .digest-content { font-size: 1rem; line-height: 1.7; margin-bottom: 2rem; }
+        .digest-content p { margin-bottom: 1rem; }
+        .footer { background-color: #f1f5f9; padding: 1.5rem; text-align: center; font-size: 0.875rem; color: #64748b; border-top: 1px solid #e2e8f0; }
+        .stats { background-color: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗞️ FMT News Digest</h1>
+            <p>${currentDate}</p>
+        </div>
+        
+        <div class="content">
+            <div class="stats">
+                📊 ${digest.wordCount} words • Generated ${new Date().toLocaleTimeString()}
+            </div>
+            
+            <h2 class="digest-title">${digest.title}</h2>
+            
+            <div class="digest-content">
+                ${this.formatContentWithParagraphs(digest.content)}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This digest was automatically generated from Free Malaysia Today news articles.</p>
+            <p>Powered by AI • Delivered every 3 hours</p>
+        </div>
+    </div>
+</body>
+</html>`;
+  }
+
+  formatContentWithParagraphs(content) {
+    return content
+      .split(/\n\s*\n/)
+      .map(paragraph => `<p>${paragraph.trim()}</p>`)
+      .join("");
+  }
+
+  stripHtml(html) {
+    return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ");
+  }
+
+  async testConnection() {
+    try {
+      await transporter.verify();
+      return true;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Email connection test failed:`, error.message);
+      return false;
+    }
+  }
+}
+
+/**
+ * Main digest generation function
+ */
+async function generateAndSendDigest() {
+  const startTime = new Date();
+  console.log(`\n[${startTime.toISOString()}] ==================== DIGEST GENERATION STARTED ====================`);
+  
+  try {
+    // Validate configuration
+    if (!config.openaiApiKey) {
+      throw new Error("OPENAI_API_KEY environment variable is required");
+    }
+    if (!config.emailUser || !config.emailPass) {
+      throw new Error("EMAIL_USER and EMAIL_PASS environment variables are required");
+    }
+    if (!config.recipientEmail) {
+      throw new Error("RECIPIENT_EMAIL environment variable is required");
+    }
+
+    // Initialize services
+    const newsService = new NewsService();
+    const aiService = new AIService();
+    const emailService = new EmailService();
+
+    // Test email connection
+    const emailConnected = await emailService.testConnection();
+    if (!emailConnected) {
+      throw new Error("Email service connection failed");
+    }
+
+    // Step 1: Fetch news articles
+    const articles = await newsService.fetchLatestNews(config.maxArticles);
+    
+    if (articles.length === 0) {
+      throw new Error("No articles fetched from FMT");
+    }
+
+    // Step 2: Generate AI digest
+    const digestData = await aiService.generateDigest(articles);
+
+    // Step 3: Send email
+    const emailResult = await emailService.sendDigest(digestData, config.recipientEmail);
+
+    if (emailResult.success) {
+      const endTime = new Date();
+      const duration = Math.round((endTime - startTime) / 1000);
+      console.log(`[${endTime.toISOString()}] ==================== DIGEST GENERATION COMPLETED (${duration}s) ====================\n`);
+    } else {
+      throw new Error(`Email delivery failed: ${emailResult.error}`);
+    }
+
+  } catch (error) {
+    const endTime = new Date();
+    console.error(`[${endTime.toISOString()}] ==================== DIGEST GENERATION FAILED ====================`);
+    console.error(`[${endTime.toISOString()}] Error: ${error.message}`);
+    console.error(`[${endTime.toISOString()}] ================================================================\n`);
+  }
+}
+
+/**
+ * Main application entry point
+ */
+async function main() {
+  console.log('FMT News Digest Script Starting...');
+  console.log('Configuration:');
+  console.log(`- OpenAI API Key: ${config.openaiApiKey ? '✓ Set' : '✗ Missing'}`);
+  console.log(`- Email User: ${config.emailUser || '✗ Missing'}`);
+  console.log(`- Email Pass: ${config.emailPass ? '✓ Set' : '✗ Missing'}`);
+  console.log(`- Recipient: ${config.recipientEmail || '✗ Missing'}`);
+  console.log(`- SMTP: ${config.smtpHost}:${config.smtpPort}`);
+  
+  // Validate required environment variables
+  const requiredVars = ['OPENAI_API_KEY', 'EMAIL_USER', 'EMAIL_PASS', 'RECIPIENT_EMAIL'];
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.error('\n❌ Missing required environment variables:');
+    missingVars.forEach(varName => {
+      console.error(`   - ${varName}`);
+    });
+    console.error('\nPlease set these variables and restart the script.');
+    process.exit(1);
+  }
+
+  console.log('\n✅ Configuration valid. Setting up scheduler...');
+
+  // Schedule to run every 3 hours starting at midnight
+  // Cron expression: "0 */3 * * *" means at minute 0 of every 3rd hour
+  const cronExpression = '0 */3 * * *';
+  
+  console.log(`📅 Scheduling digest generation: ${cronExpression} (every 3 hours starting at midnight)`);
+  console.log('🔄 Next runs will be at: 12:00 AM, 3:00 AM, 6:00 AM, 9:00 AM, 12:00 PM, 3:00 PM, 6:00 PM, 9:00 PM');
+  
+  // Schedule the job
+  cron.schedule(cronExpression, generateAndSendDigest, {
+    scheduled: true,
+    timezone: "Asia/Kuala_Lumpur"
+  });
+
+  console.log('✅ Scheduler started successfully!');
+  console.log('💡 To run a test digest immediately, press Ctrl+C and run: node digest-script.js --test');
+  
+  // Handle graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\n👋 Shutting down digest script...');
+    process.exit(0);
+  });
+
+  // Keep the script running
+  console.log('🔄 Script is running... Press Ctrl+C to stop.');
+}
+
+// Handle command line arguments
+if (process.argv.includes('--test')) {
+  console.log('🧪 Running test digest generation...');
+  generateAndSendDigest().then(() => {
+    console.log('✅ Test completed. Exiting...');
+    process.exit(0);
+  }).catch((error) => {
+    console.error('❌ Test failed:', error.message);
+    process.exit(1);
+  });
+} else {
+  main().catch((error) => {
+    console.error('❌ Failed to start:', error.message);
+    process.exit(1);
+  });
+}
