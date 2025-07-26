@@ -44,31 +44,46 @@ cd fmt-news-digest
 npm install
 ```
 
-3. Set up environment variables:
+3. Configure environment variables:
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env with your actual credentials
+nano .env
+```
+
+**Or set environment variables directly:**
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
 export SMTP_PASSWORD="your-smtp-password"
+export EMAIL_USER="sender@domain.com"
+export RECIPIENT_EMAIL="recipient@domain.com"
 ```
 
 ### Running the Service
 
-**Start the automated service:**
+**Method 1: Using the startup script (Recommended)**
 ```bash
+# Make script executable
+chmod +x start-digest.sh
+
+# Start the service (loads .env automatically)
+./start-digest.sh
+```
+
+**Method 2: Direct service management**
+```bash
+# Start the automated service
 node digest-service.js start
-```
 
-**Check service status:**
-```bash
+# Check service status
 node digest-service.js status
-```
 
-**Stop the service:**
-```bash
+# Stop the service
 node digest-service.js stop
-```
 
-**Run a test digest:**
-```bash
+# Run a test digest
 node digest-service.js test
 ```
 
@@ -140,13 +155,21 @@ The system includes robust service management:
 ## File Structure
 
 ```
-├── digest-script.js         # Main digest generation script
-├── digest-service.js        # Service management wrapper
+├── digest-script.js         # Main digest generation script (24KB)
+├── digest-service.js        # Service management wrapper (6KB)
+├── start-digest.sh          # Production startup script
+├── .env.example             # Environment variable template
+├── package.json             # Dependencies and scripts
+├── README.md                # Project documentation
+├── SECURITY_STATUS.md       # Security implementation status
+└── replit.md                # Technical architecture notes
+```
+
+**Runtime files (created during operation):**
+```
 ├── digest-service.log       # Service operation logs
 ├── digest.pid              # Process ID file
-├── package.json            # Dependencies and scripts
-├── README.md              # This file
-└── SECURITY_AUDIT.md      # Security assessment
+└── .env                    # Your environment variables (git-ignored)
 ```
 
 ## Logging
