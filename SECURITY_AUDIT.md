@@ -26,9 +26,9 @@ The FMT News Digest system has been audited for security vulnerabilities and pri
 **Location:** `digest-service.js` lines 39-42
 
 ```javascript
-process.env.EMAIL_USER = 'ricky@rickysoo.com';
-process.env.RECIPIENT_EMAIL = 'ricky@rickysoo.com';
-process.env.SMTP_HOST = 'mail.rickysoo.com';
+process.env.EMAIL_USER = 'user@example.com';
+process.env.RECIPIENT_EMAIL = 'recipient@example.com';
+process.env.SMTP_HOST = 'mail.example.com';
 process.env.SMTP_PORT = '465';
 ```
 

@@ -22,6 +22,9 @@ secrets/
 emails/
 output/
 
+# Development artifacts
+attached_assets/
+
 # Temporary files
 tmp/
 temp/

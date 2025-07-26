@@ -35,11 +35,21 @@ function start() {
 
   log(`Starting ${SERVICE_NAME}...`);
 
-  // Set environment variables (only if not already set)
-  process.env.EMAIL_USER = process.env.EMAIL_USER || 'ricky@rickysoo.com';
-  process.env.RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'ricky@rickysoo.com';
-  process.env.SMTP_HOST = process.env.SMTP_HOST || 'mail.rickysoo.com';
-  process.env.SMTP_PORT = process.env.SMTP_PORT || '465';
+  // Validate required environment variables
+  const requiredEnvVars = ['EMAIL_USER', 'RECIPIENT_EMAIL', 'SMTP_PASSWORD', 'OPENAI_API_KEY'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.log('❌ Missing required environment variables:');
+    missingVars.forEach(varName => console.log(`   - ${varName}`));
+    console.log('\nPlease set these environment variables before starting the service.');
+    console.log('See README.md for configuration instructions.');
+    process.exit(1);
+  }
+
+  // Set optional environment variables with secure defaults
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+  process.env.SMTP_PORT = process.env.SMTP_PORT || '587';
 
   // Spawn the digest script
   const child = spawn('node', [SCRIPT_PATH], {
