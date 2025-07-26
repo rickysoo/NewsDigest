@@ -65,6 +65,29 @@ const transporter = nodemailer.createTransport({
 class NewsService {
   constructor() {
     this.FMT_BASE_URL = "https://www.freemalaysiatoday.com";
+    this.fmtLogoUrl = "https://www.freemalaysiatoday.com/wp-content/uploads/2019/07/FMT-logo-new2.png";
+  }
+
+  extractLogoUrl($) {
+    // Try to find FMT logo in the page
+    const logoSelectors = [
+      'img[alt*="FMT"]',
+      'img[src*="logo"]',
+      '.logo img',
+      'header img',
+      '.site-logo img'
+    ];
+    
+    for (const selector of logoSelectors) {
+      const logoImg = $(selector).first();
+      if (logoImg.length) {
+        const src = logoImg.attr('src');
+        if (src) {
+          return src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
+        }
+      }
+    }
+    return null;
   }
 
   async fetchLatestNews(limit = 10) {
@@ -79,6 +102,12 @@ class NewsService {
       const html = await response.text();
       const $ = cheerio.load(html);
       const articles = [];
+
+      // Extract FMT logo for email
+      const logoUrl = this.extractLogoUrl($);
+      if (logoUrl) {
+        this.fmtLogoUrl = logoUrl;
+      }
 
       // FMT news article selectors
       $("article, .news-item, .post-item").slice(0, limit).each((_, element) => {
@@ -530,9 +559,9 @@ class EmailService {
 <body>
     <div class="container">        
         <div class="content">
-            <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
-            <div class="stats">
-                ${digest.wordCount} words
+            <div class="header-section" style="text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0;">
+                <img src="${global.newsService ? global.newsService.fmtLogoUrl : 'https://www.freemalaysiatoday.com/wp-content/uploads/2019/07/FMT-logo-new2.png'}" alt="Free Malaysia Today" style="max-height: 60px; margin-bottom: 1rem;" />
+                <div class="date-header">${currentDate} • ${generatedTime} MYT</div>
             </div>
             
             <h2 class="digest-title">${digest.title}</h2>
@@ -604,7 +633,7 @@ async function generateAndSendDigest() {
     }
 
     // Initialize services
-    const newsService = new NewsService();
+    global.newsService = new NewsService();
     const aiService = new AIService();
     const emailService = new EmailService();
 
@@ -615,7 +644,7 @@ async function generateAndSendDigest() {
     }
 
     // Step 1: Fetch news articles
-    const articles = await newsService.fetchLatestNews(config.maxArticles);
+    const articles = await global.newsService.fetchLatestNews(config.maxArticles);
     
     if (articles.length === 0) {
       throw new Error("No articles fetched from FMT");
