@@ -21,6 +21,7 @@ import OpenAI from 'openai';
 import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import ImageConverter from './image-converter.js';
 
 // Configuration
 const config = {
@@ -66,6 +67,7 @@ class NewsService {
   constructor() {
     this.FMT_BASE_URL = "https://www.freemalaysiatoday.com";
     this.firstArticleImage = null;
+    this.imageConverter = new ImageConverter();
   }
 
   extractImageFromArticle($) {
@@ -125,9 +127,19 @@ class NewsService {
       // First, try to find meta content with direct image URLs
       const metaItemprop = $('meta[itemprop="url"]').attr('content');
       if (metaItemprop && metaItemprop.includes('wp-content/uploads')) {
-        // Use the original WebP URL since JPG conversion may not exist
         console.log(`[${this.getMalaysiaTime()}] Found meta itemprop image: ${metaItemprop}`);
-        this.firstArticleImage = metaItemprop;
+        // Convert and store locally for better email compatibility
+        const localImagePath = await this.imageConverter.downloadAndConvertImage(metaItemprop);
+        if (localImagePath) {
+          // Use Replit server URL - use localhost for development, proper domain for production
+          const baseUrl = process.env.NODE_ENV === 'development' 
+            ? 'http://localhost:5000' 
+            : `https://${process.env.REPL_SLUG || 'workspace'}.${process.env.REPLIT_DOMAIN || 'replit.app'}`;
+          this.firstArticleImage = `${baseUrl}${localImagePath}`;
+          console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+        } else {
+          this.firstArticleImage = metaItemprop; // Fallback to original
+        }
         return;
       }
       
@@ -144,7 +156,17 @@ class NewsService {
           let imageUrl = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
           
           console.log(`[${this.getMalaysiaTime()}] Found content image: ${imageUrl}`);
-          this.firstArticleImage = imageUrl;
+          // Convert and store locally for better email compatibility
+          const localImagePath = await this.imageConverter.downloadAndConvertImage(imageUrl);
+          if (localImagePath) {
+            const baseUrl = process.env.NODE_ENV === 'development' 
+              ? 'http://localhost:5000' 
+              : `https://${process.env.REPL_SLUG || 'workspace'}.${process.env.REPLIT_DOMAIN || 'replit.app'}`;
+            this.firstArticleImage = `${baseUrl}${localImagePath}`;
+            console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+          } else {
+            this.firstArticleImage = imageUrl; // Fallback to original
+          }
           return;
         }
       }
@@ -164,9 +186,18 @@ class NewsService {
         if (selector.startsWith('meta')) {
           const metaImg = $(selector).attr('content');
           if (metaImg && !metaImg.includes('logo') && !metaImg.includes('default')) {
-            // Use original image format since many email clients now support WebP
-            this.firstArticleImage = metaImg;
             console.log(`[${this.getMalaysiaTime()}] Extracted meta image: ${metaImg}`);
+            // Convert and store locally for better email compatibility
+            const localImagePath = await this.imageConverter.downloadAndConvertImage(metaImg);
+            if (localImagePath) {
+              const baseUrl = process.env.NODE_ENV === 'development' 
+                ? 'http://localhost:5000' 
+                : `https://${process.env.REPL_SLUG || 'workspace'}.${process.env.REPLIT_DOMAIN || 'replit.app'}`;
+              this.firstArticleImage = `${baseUrl}${localImagePath}`;
+              console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+            } else {
+              this.firstArticleImage = metaImg; // Fallback to original
+            }
             return;
           }
         } else {
@@ -175,8 +206,18 @@ class NewsService {
             const src = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
             if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
               let fullSrc = src.startsWith('http') ? src : `${this.FMT_BASE_URL}${src}`;
-              this.firstArticleImage = fullSrc;
               console.log(`[${this.getMalaysiaTime()}] Extracted article image: ${fullSrc}`);
+              // Convert and store locally for better email compatibility
+              const localImagePath = await this.imageConverter.downloadAndConvertImage(fullSrc);
+              if (localImagePath) {
+                const baseUrl = process.env.NODE_ENV === 'development' 
+                  ? 'http://localhost:5000' 
+                  : `https://${process.env.REPL_SLUG || 'workspace'}.${process.env.REPLIT_DOMAIN || 'replit.app'}`;
+                this.firstArticleImage = `${baseUrl}${localImagePath}`;
+                console.log(`[${this.getMalaysiaTime()}] Image converted and stored locally: ${this.firstArticleImage}`);
+              } else {
+                this.firstArticleImage = fullSrc; // Fallback to original
+              }
               return;
             }
           }
@@ -350,6 +391,9 @@ class NewsService {
             console.log(`[${this.getMalaysiaTime()}] No image found, trying additional extraction methods...`);
             await this.extractImageFromUrl(this.topArticle.url);
           }
+          
+          // Clean up old images
+          this.imageConverter.cleanupOldImages();
         } catch (error) {
           console.error(`Error fetching top article image: ${error.message}`);
         }
