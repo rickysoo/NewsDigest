@@ -215,7 +215,7 @@ class NewsService {
       const articlesWithContent = await Promise.all(
         articles.map(async (article, index) => {
           try {
-            const content = await this.fetchArticleContent(article.url, index === 0);
+            const content = await this.fetchArticleContent(article.url, false);
             return { ...article, content };
           } catch (error) {
             console.error(`Error fetching content for ${article.url}:`, error.message);
@@ -226,7 +226,7 @@ class NewsService {
 
       const validArticles = articlesWithContent.filter(article => article.title.length > 10);
       
-      // Prioritize Malaysian domestic news
+      // Prioritize Malaysian domestic news and extract image from the top article
       const malaysianKeywords = [
         'malaysia', 'malaysian', 'kuala lumpur', 'kl', 'putrajaya', 'selangor', 'johor', 'penang', 'sabah', 'sarawak',
         'prime minister', 'pm', 'anwar', 'mahathir', 'najib', 'dap', 'umno', 'pas', 'pkr', 'parliament', 'dewan rakyat',
@@ -240,6 +240,19 @@ class NewsService {
         const bScore = this.calculateMalaysianRelevanceScore(b, malaysianKeywords);
         return bScore - aScore; // Higher score first
       });
+
+      // Store the top article for image and subject alignment
+      if (prioritizedArticles.length > 0) {
+        this.topArticle = prioritizedArticles[0];
+        // Extract image specifically from the top prioritized article
+        try {
+          console.log(`[${this.getMalaysiaTime()}] Fetching image from top article: ${this.topArticle.title}`);
+          const topArticleContent = await this.fetchArticleContent(this.topArticle.url, true);
+          this.topArticle.content = topArticleContent;
+        } catch (error) {
+          console.error(`Error fetching top article image: ${error.message}`);
+        }
+      }
       
       console.log(`[${this.getMalaysiaTime()}] Successfully processed ${prioritizedArticles.length} articles from past 6 hours (prioritized Malaysian news)`);
       
@@ -271,11 +284,12 @@ class NewsService {
       const html = await response.text();
       const $ = cheerio.load(html);
 
-      // If this is the first article and we don't have an image yet, try to extract one
+      // If this is the top article (after prioritization), extract its image
       if (isFirstArticle && !this.firstArticleImage) {
         const articleImage = this.extractImageFromArticle($);
         if (articleImage) {
           this.firstArticleImage = articleImage;
+          console.log(`[${this.getMalaysiaTime()}] Extracted image from top article: ${url}`);
         }
       }
 
@@ -417,27 +431,32 @@ class AIService {
         .map((article, index) => `${index + 1}. ${article.title}\n${article.content}\n`)
         .join("\n");
 
+      const topStoryTitle = articles.length > 0 ? articles[0].title : "Malaysian News Update";
+      
       const prompt = `You are a professional news editor creating a comprehensive news digest from the latest Malaysian articles published in the past 6 hours for Malaysian readers. 
+
+The TOP STORY is: "${topStoryTitle}"
 
 Please analyze the following ${articles.length} recent news articles from Free Malaysia Today and create a cohesive ${config.targetWords}-word digest that:
 
-1. PRIORITIZES Malaysian domestic news, politics, economics, and social issues from the past 6 hours
-2. Provides a concise, engaging title (under 50 characters for email subjects)
-3. Focuses heavily on breaking news and recent developments that directly impact Malaysia and Malaysians
-4. Groups related Malaysian stories into coherent sections
-5. INCLUDES a final paragraph briefly mentioning relevant international news that affects Malaysia
-6. Uses clear, engaging language suitable for Malaysian readers
-7. Maintains an objective, journalistic tone with emphasis on recent developments
-8. Format content as HTML paragraphs and sections
-9. Highlight the recency and urgency of the news when appropriate
+1. STARTS with the top story: "${topStoryTitle}" as the main focus
+2. Provides a title that reflects the TOP STORY content (under 50 characters for email subjects)
+3. PRIORITIZES Malaysian domestic news, politics, economics, and social issues from the past 6 hours
+4. Focuses heavily on breaking news and recent developments that directly impact Malaysia and Malaysians
+5. Groups related Malaysian stories into coherent sections
+6. INCLUDES a final paragraph briefly mentioning relevant international news that affects Malaysia
+7. Uses clear, engaging language suitable for Malaysian readers
+8. Maintains an objective, journalistic tone with emphasis on recent developments
+9. Format content as HTML paragraphs and sections
+10. Highlight the recency and urgency of the news when appropriate
 
-Recent articles to summarize (from past 6 hours):
+Recent articles to summarize (from past 6 hours, with TOP STORY first):
 ${articlesText}
 
 Please respond with JSON in this exact format:
 {
-  "title": "Brief compelling title focusing on recent Malaysian news (under 50 chars)",
-  "content": "Your ${config.targetWords}-word digest content formatted as HTML with <h3> for sections and <p> for paragraphs, prioritizing recent Malaysian domestic news with international news mentioned in final paragraph"
+  "title": "Brief compelling title based on the TOP STORY: '${topStoryTitle}' (under 50 chars)",
+  "content": "Your ${config.targetWords}-word digest content formatted as HTML with <h3> for sections and <p> for paragraphs, starting with the top story and including international news in final paragraph"
 }`;
 
       // Using GPT-4o-mini for cost efficiency as requested by user
@@ -542,7 +561,7 @@ class EmailService {
       await transporter.sendMail({
         from: config.emailUser,
         to: recipientEmail,
-        subject: `FMT News Digest: ${digest.title}`,
+        subject: `${digest.title} - FMT News`,
         html: emailContent,
         text: this.stripHtml(emailContent),
       });
