@@ -15,7 +15,7 @@ log() {
 
 # Function to check if digest scheduler is running
 is_scheduler_running() {
-    if pgrep -f "digest-script.js" > /dev/null; then
+    if pgrep -f "digest-script" > /dev/null; then
         return 0  # Running
     else
         return 1  # Not running

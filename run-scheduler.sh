@@ -36,7 +36,7 @@ start_scheduler() {
     export SMTP_PORT="465"
     
     # Start the scheduler in background
-    nohup node "$SCRIPT_DIR/digest-script.js" > "$SCRIPT_DIR/scheduler-output.log" 2>&1 &
+    nohup node "$SCRIPT_DIR/digest-script.mjs" > "$SCRIPT_DIR/scheduler-output.log" 2>&1 &
     local pid=$!
     
     # Save PID

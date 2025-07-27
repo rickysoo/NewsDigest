@@ -249,7 +249,7 @@ const commands = {
     stop: () => {
         console.log('🛑 Stopping digest services...');
         try {
-            execSync('pkill -f digest-script.js', { stdio: 'inherit' });
+            execSync('pkill -f digest-script', { stdio: 'inherit' });
             execSync('pkill -f watchdog-scheduler.sh', { stdio: 'inherit' });
             console.log('✅ Services stopped');
         } catch (error) {
