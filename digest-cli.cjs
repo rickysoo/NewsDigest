@@ -45,7 +45,7 @@ function saveConfig(config) {
 // Get process status
 function getProcessStatus() {
     try {
-        const schedulerPid = execSync('pgrep -f "digest-script.js"', { encoding: 'utf8' }).trim();
+        const schedulerPid = execSync('pgrep -f "digest-script"', { encoding: 'utf8' }).trim();
         const watchdogPid = execSync('pgrep -f "watchdog-scheduler.sh"', { encoding: 'utf8' }).trim();
         
         return {
@@ -169,9 +169,18 @@ const commands = {
     test: () => {
         console.log('🧪 Sending test digest...');
         try {
-            const output = execSync('node digest-script.js --test', { 
+            const config = loadConfig();
+            const testEnv = {
+                ...process.env,
+                EMAIL_USER: 'ricky@rickysoo.com',
+                RECIPIENT_EMAIL: config.recipients[0] || 'ricky@rickysoo.com',
+                SMTP_HOST: 'mail.rickysoo.com',
+                SMTP_PORT: '465'
+            };
+            
+            const output = execSync('node digest-script.mjs --test', { 
                 encoding: 'utf8',
-                env: { ...process.env }
+                env: testEnv
             });
             console.log(output);
         } catch (error) {
