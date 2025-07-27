@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**July 27, 2025 - Added Comprehensive CLI Management System**
+- Created complete command-line interface (`digest-cli.cjs`) for system management
+- Added configuration management with persistent JSON storage
+- Implemented process monitoring and control through CLI commands
+- Created watchdog system with hourly monitoring (60-minute intervals)
+- Enhanced system reliability with automatic scheduler restart capabilities
+- CLI supports: source configuration, interval changes, recipient management, testing, logs
+- All system operations now manageable through simple `./digest <command>` syntax
+
 **July 27, 2025 - Simplified to Standalone Email Automation**
 - Removed web dashboard interface and all React/Express dependencies
 - Converted to standalone Node.js email automation system
@@ -18,7 +27,6 @@ Preferred communication style: Simple, everyday language.
 - Streamlined project to focus solely on FMT news digest automation
 - Maintained 3 times daily schedule: 8am, 4pm, 12am Malaysia Time
 - Enhanced image processing with base64 embedding for reliable email display
-- System now runs as simple background process without web interface
 
 ## System Architecture
 
