@@ -10,42 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 26, 2025 - Security & GitHub Preparation Complete**
-- Implemented comprehensive input sanitization to prevent XSS and injection attacks
-- Added rate limiting for OpenAI API (10/hour), HTTP requests (50/hour), and emails (25/day)
-- Enhanced secure error logging with sensitive data filtering (URLs, emails, IPs, API keys)
-- Removed hardcoded credential fallbacks requiring all sensitive config via environment variables
-- Email addresses now masked in logs for privacy (e.g., ri***@domain.com)
-- Added content validation removing HTML tags and malicious content from scraped articles
-- Created detailed SECURITY_STATUS.md showing critical issues resolved
-- Updated README.md with security features and deployment checklist
-- System security level upgraded from MEDIUM to HIGH
-- Removed all hardcoded personal information for safe GitHub publication
-- Updated to GPT-4o-mini for cost efficiency while maintaining quality
-- Fixed README.md documentation inconsistency: removed reference to missing SECURITY_AUDIT.md file
-- Made SECURITY_STATUS.md private by removing all public references and adding to .gitignore
-- Updated public documentation to use generic security guidelines instead of referencing private files
-- Updated schedule to 3 times daily at 8am, 4pm, 12am Malaysia Time (changed from every 3 hours)
+**July 27, 2025 - Simplified to Standalone Email Automation**
+- Removed web dashboard interface and all React/Express dependencies
+- Converted to standalone Node.js email automation system
+- Created reliable background scheduler with `start-digest-background.sh`
+- Added process management scripts for ensuring scheduler reliability
+- Streamlined project to focus solely on FMT news digest automation
+- Maintained 3 times daily schedule: 8am, 4pm, 12am Malaysia Time
+- Enhanced image processing with base64 embedding for reliable email display
+- System now runs as simple background process without web interface
 
 ## System Architecture
 
-### Frontend Architecture
-- **React + TypeScript**: Modern React application with TypeScript for type safety
-- **Vite**: Fast build tool and development server
-- **Tailwind CSS**: Utility-first CSS framework for styling
-- **shadcn/ui**: Pre-built UI component library based on Radix UI primitives
-- **TanStack Query**: Data fetching and caching library for API interactions
-- **Wouter**: Lightweight client-side routing
-
-### Backend Architecture
-- **Express.js**: Node.js web framework handling API routes and middleware
-- **TypeScript**: Full type safety across the backend
-- **Service-oriented design**: Separated concerns with dedicated services for news, AI, email, and scheduling
-
-### Database Layer
-- **Drizzle ORM**: Type-safe SQL query builder and ORM
-- **PostgreSQL**: Primary database (configured via Neon serverless)
-- **Schema-first approach**: Database schema defined in shared TypeScript files
+### Standalone Automation System
+- **Node.js Script**: Single digest-script.js handling all functionality
+- **Background Scheduler**: Reliable cron-based email automation
+- **Process Management**: Scripts for starting, stopping, and monitoring
+- **No Web Interface**: Pure automation system without GUI dependencies
 
 ## Key Components
 
@@ -61,12 +42,11 @@ Preferred communication style: Simple, everyday language.
 - **SystemLogs**: Application logging and monitoring
 - **Settings**: Configurable application parameters
 
-### Frontend Pages
-- **Dashboard**: Overview with stats, recent digests, and manual triggers
-- **Digests**: Browse all generated digests with status indicators
-- **Email Logs**: Monitor email delivery success/failure rates
-- **Schedule**: Configure automation intervals and recipients
-- **Settings**: System configuration management
+### Management Commands
+- **`./start-digest-background.sh`**: Start scheduler in background
+- **`./run-scheduler.sh`**: Full process management (start/stop/status)
+- **`node digest-script.js --test`**: Manual digest generation
+- **Process monitoring**: Built-in restart and error handling
 
 ## Data Flow
 
