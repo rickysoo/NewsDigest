@@ -69,7 +69,21 @@ const commands = {
         console.log(`Source: ${config.source}`);
         console.log(`Interval: ${config.interval} minutes`);
         console.log(`Recipients: ${config.recipients.join(', ')}`);
-        console.log(`Schedule: ${config.schedules.join(', ')} UTC`);
+        // Convert UTC hours to Malaysia Time (UTC+8) 
+        // Handle both array format and comma-separated string format
+        let utcHours;
+        if (Array.isArray(config.schedules)) {
+            utcHours = config.schedules.flatMap(s => s.includes(',') ? s.split(',') : [s]);
+        } else {
+            utcHours = config.schedules.split(',');
+        }
+        
+        const mytSchedules = utcHours.map(h => {
+            const utcHour = parseInt(h.trim());
+            const mytHour = (utcHour + 8) % 24;
+            return `${mytHour.toString().padStart(2, '0')}:00`;
+        });
+        console.log(`Schedule: ${mytSchedules.join(', ')} MYT (${utcHours.join(', ')} UTC)`);
         console.log(`Status: ${config.enabled ? 'Enabled' : 'Disabled'}`);
         console.log(`Last Updated: ${config.lastUpdate}`);
     },
@@ -115,7 +129,12 @@ const commands = {
         saveConfig(config);
         
         console.log(`✅ Interval updated to ${minutes} minutes`);
-        console.log(`📅 New schedule: ${schedules.join(':00, ')}:00 UTC`);
+        // Show both Malaysia Time and UTC for clarity
+        const mytSchedules = schedules.map(h => {
+            const mytHour = (h + 8) % 24;
+            return `${mytHour.toString().padStart(2, '0')}:00`;
+        });
+        console.log(`📅 New schedule: ${mytSchedules.join(', ')} MYT (${schedules.join(':00, ')}:00 UTC)`);
         console.log('⚠️  Restart scheduler to apply changes: digest restart');
     },
 
@@ -197,7 +216,21 @@ const commands = {
         console.log(`Configuration: ${config.enabled ? '✅ Enabled' : '❌ Disabled'}`);
         console.log(`Scheduler: ${status.scheduler.running ? `✅ Running (PID: ${status.scheduler.pid})` : '❌ Stopped'}`);
         console.log(`Watchdog: ${status.watchdog.running ? `✅ Running (PID: ${status.watchdog.pid})` : '❌ Stopped'}`);
-        console.log(`Next runs: ${config.schedules.map(h => `${h}:00`).join(', ')} UTC`);
+        // Convert UTC hours to Malaysia Time (UTC+8)
+        // Handle both array format and comma-separated string format
+        let utcHours;
+        if (Array.isArray(config.schedules)) {
+            utcHours = config.schedules.flatMap(s => s.includes(',') ? s.split(',') : [s]);
+        } else {
+            utcHours = config.schedules.split(',');
+        }
+        
+        const mytSchedules = utcHours.map(h => {
+            const utcHour = parseInt(h.trim());
+            const mytHour = (utcHour + 8) % 24;
+            return `${mytHour.toString().padStart(2, '0')}:00`;
+        });
+        console.log(`Next runs: ${mytSchedules.join(', ')} MYT (Malaysia Time)`);
     },
 
     // Start services
