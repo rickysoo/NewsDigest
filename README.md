@@ -108,13 +108,26 @@ Default schedule (3 times daily):
 - **4:00 PM** Malaysia Time (8:00 AM UTC)  
 - **12:00 AM** Malaysia Time (4:00 PM UTC)
 
+Schedule automatically adjusts based on your configured interval using the CLI.
+
 ## System Architecture
 
+### Core Components
 - **digest-script.js**: Main digest generation and email sending
-- **digest-cli.cjs**: Command-line interface for management
-- **start-digest-background.sh**: Scheduler startup script
-- **watchdog-scheduler.sh**: Monitors and restarts scheduler if needed
+- **digest-cli.cjs**: Command-line interface for management (16 commands)
+- **digest**: CLI wrapper script for easy command execution
 - **image-converter.js**: Handles image processing and base64 conversion
+
+### Process Management
+- **start-digest-background.sh**: Scheduler startup script
+- **watchdog-scheduler.sh**: Monitors and restarts scheduler (60-min intervals)  
+- **start-watchdog.sh**: Watchdog startup script
+- **setup-local.sh**: Automated local installation setup
+
+### Configuration
+- **digest-config.json**: Persistent configuration storage (auto-generated)
+- **.env**: Environment variables for API keys and credentials
+- **package-standalone.json**: Standalone npm package configuration
 
 ## Requirements
 
@@ -152,13 +165,53 @@ Default schedule (3 times daily):
 - Keep your OpenAI API key secure
 - Regularly monitor logs for any issues
 
+## Advanced Usage
+
+### Batch Configuration
+```bash
+./digest source https://www.freemalaysiatoday.com
+./digest interval 360
+./digest recipient add team@company.com
+./digest start
+```
+
+### Monitoring and Maintenance
+```bash
+# Check everything is working
+./digest status
+
+# View recent activity
+./digest logs
+
+# Restart if needed
+./digest restart
+```
+
+### Customization
+The system supports:
+- Multiple news sources (modify `digest-script.js`)
+- Custom email templates (HTML formatting)
+- Flexible scheduling (any interval in minutes)
+- Multiple recipients
+- Watchdog monitoring with auto-restart
+
+## Recent Updates (July 27, 2025)
+
+- ✅ **Complete CLI Management System**: 16 commands for full control
+- ✅ **Persistent Configuration**: JSON-based settings storage
+- ✅ **Watchdog Monitoring**: Hourly health checks with auto-restart
+- ✅ **Standalone Package**: Ready for local npm installation
+- ✅ **Enhanced Reliability**: Multiple process management scripts
+- ✅ **Comprehensive Documentation**: Installation guides and troubleshooting
+
 ## Support
 
 For issues or questions:
-1. Check the logs: `./digest logs`
-2. Verify configuration: `./digest config`
-3. Test connectivity: `./digest test`
-4. Restart services: `./digest restart`
+1. Check system status: `./digest status`
+2. View logs: `./digest logs`
+3. Verify configuration: `./digest config`
+4. Test connectivity: `./digest test`
+5. Restart services: `./digest restart`
 
 ## License
 
