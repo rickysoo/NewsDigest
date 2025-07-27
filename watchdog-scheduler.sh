@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Watchdog script to ensure digest scheduler keeps running
-# This script checks every 5 minutes if the scheduler is running
+# This script checks every 60 minutes if the scheduler is running
 # and restarts it if needed
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,8 +46,8 @@ main() {
             log "Scheduler is running normally"
         fi
         
-        # Wait 5 minutes before next check
-        sleep 300
+        # Wait 60 minutes before next check
+        sleep 3600
     done
 }
 
