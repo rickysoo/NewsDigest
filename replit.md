@@ -10,7 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**July 28, 2025 - Fixed Deployment Issues**
+**July 28, 2025 - Fixed ES Module Import Syntax Error**
+- Created CommonJS wrapper (digest-script.js) that imports ES module version (digest-script.mjs)
+- Resolved deployment error: "ES module import syntax not supported in CommonJS mode"
+- Maintained package.json as CommonJS while enabling ES6 imports through dynamic import()
+- All npm scripts now work correctly: test, start, and dev commands function properly
+- Successfully tested digest generation and email delivery with fixed module configuration
+
+**July 28, 2025 - Fixed Previous Deployment Issues**
 - Added missing `dev` and `build` scripts to package.json to resolve deployment errors
 - Fixed email SMTP configuration for proper SSL/STARTTLS handling
 - Updated workflow to successfully run digest script in development mode

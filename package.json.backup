@@ -1,0 +1,48 @@
+{
+  "name": "fmt-news-digest",
+  "version": "1.0.0",
+  "description": "Automated FMT news digest generator with email delivery",
+  "main": "digest-script.js",
+  "type": "commonjs",
+  "bin": {
+    "digest": "./digest"
+  },
+  "scripts": {
+    "start": "node digest-script.js",
+    "test": "node digest-script.js --test",
+    "setup": "chmod +x digest start-digest-background.sh watchdog-scheduler.sh start-watchdog.sh",
+    "scheduler": "./start-digest-background.sh",
+    "watchdog": "./start-watchdog.sh",
+    "dev": "node digest-script.mjs --test",
+    "build": "echo \"No build step required for Node.js automation script\""
+  },
+  "keywords": [
+    "news",
+    "digest",
+    "email",
+    "automation",
+    "fmt",
+    "malaysia",
+    "ai",
+    "openai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.8",
+    "openai": "^4.28.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/fmt-news-digest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/fmt-news-digest/issues"
+  },
+  "homepage": "https://github.com/yourusername/fmt-news-digest#readme"
+}
