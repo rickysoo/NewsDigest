@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**July 28, 2025 - Added Comprehensive REST API System**
+- Created full-featured REST API server (api-server.js) with 8 endpoints
+- Built interactive web interface for API testing and monitoring
+- Implemented rate limiting: 100 req/15min general, 10 req/hour for digest generation
+- Added real-time statistics, system status, and digest history tracking
+- Created comprehensive API documentation with usage examples
+- Designed for deployment at https://your-replit-app.replit.app with full CORS support
+- API provides on-demand digest generation alongside existing scheduled automation
+
 **July 28, 2025 - Fixed ES Module Import Syntax Error**
 - Created CommonJS wrapper (digest-script.js) that imports ES module version (digest-script.mjs)
 - Resolved deployment error: "ES module import syntax not supported in CommonJS mode"
@@ -55,11 +64,11 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Standalone Automation System
-- **Node.js Script**: Single digest-script.js handling all functionality
-- **Background Scheduler**: Reliable cron-based email automation
-- **Process Management**: Scripts for starting, stopping, and monitoring
-- **No Web Interface**: Pure automation system without GUI dependencies
+### Dual-Mode System: Automation + API
+- **Automation Mode**: digest-script.js for scheduled cron-based email automation
+- **API Mode**: api-server.js providing REST endpoints for manual control and monitoring
+- **Web Interface**: Interactive dashboard for API testing and system monitoring
+- **Flexible Deployment**: Can run as pure automation or combined automation+API system
 
 ## Key Components
 
