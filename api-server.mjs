@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * CommonJS wrapper for the ES module API server
- * This allows the package.json to remain as CommonJS while running the ES module version
+ * FMT News Digest REST API Server
+ * Provides REST endpoints for digest management and generation
+ * 
+ * Usage: node api-server.mjs
+ * Default port: 3000 (or PORT environment variable)
  */
 
-import('./api-server.mjs')
-  .then(() => {
-    console.log('✅ API Server started successfully');
-  })
-  .catch((error) => {
-    console.error('❌ API Server failed to start:', error.message);
-    process.exit(1);
-  });
+import express from 'express';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,7 +61,7 @@ let apiStats = {
 };
 
 // Helper function to run digest generation
-async function generateDigest(testMode = false) {
+async function generateDigest(testMode = true) {
   try {
     // Import and run digest script
     const { exec } = await import('child_process');
@@ -65,7 +69,12 @@ async function generateDigest(testMode = false) {
     const execAsync = promisify(exec);
     
     const command = testMode ? 'node digest-script.js --test' : 'node digest-script.js';
-    const result = await execAsync(command);
+    console.log(`[API] Executing: ${command}`);
+    
+    const result = await execAsync(command, { 
+      timeout: 60000, // 60 second timeout
+      maxBuffer: 1024 * 1024 // 1MB buffer
+    });
     
     return {
       success: true,
@@ -73,6 +82,7 @@ async function generateDigest(testMode = false) {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
+    console.error('[API] Digest generation error:', error.message);
     return {
       success: false,
       error: error.message,
@@ -148,7 +158,7 @@ app.post('/api/digest/generate', digestLimiter, async (req, res) => {
   apiStats.totalRequests++;
   
   try {
-    console.log('API: Starting digest generation...');
+    console.log('[API] Starting digest generation...');
     const result = await generateDigest(true);
     
     if (result.success) {
@@ -161,7 +171,7 @@ app.post('/api/digest/generate', digestLimiter, async (req, res) => {
         timestamp: result.timestamp,
         status: 'success',
         source: 'api',
-        output: result.output
+        output: result.output.substring(0, 1000) + '...' // Truncate for storage
       });
       
       // Keep only last 50 entries
@@ -183,7 +193,7 @@ app.post('/api/digest/generate', digestLimiter, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('API: Digest generation failed:', error.message);
+    console.error('[API] Digest generation failed:', error.message);
     res.status(500).json({
       success: false,
       error: 'Internal server error during digest generation',
@@ -227,24 +237,15 @@ app.get('/api/digest/:id', (req, res) => {
   res.json(digest);
 });
 
-// Get latest news articles (without generating digest)
+// Get latest news articles (placeholder)
 app.get('/api/news/latest', async (req, res) => {
   apiStats.totalRequests++;
   
-  try {
-    // This would require extracting the news fetching logic from digest-script.mjs
-    // For now, return a placeholder response
-    res.json({
-      message: 'News fetching endpoint - requires extraction of news service from digest script',
-      timestamp: new Date().toISOString(),
-      note: 'Use POST /api/digest/generate to get news with digest'
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Failed to fetch latest news',
-      timestamp: new Date().toISOString()
-    });
-  }
+  res.json({
+    message: 'News fetching endpoint - Use POST /api/digest/generate to get news with digest',
+    timestamp: new Date().toISOString(),
+    availableEndpoints: ['/api/digest/generate', '/api/digest/history']
+  });
 });
 
 // System status endpoint
@@ -253,12 +254,14 @@ app.get('/api/system/status', (req, res) => {
   
   const status = {
     api: 'running',
-    database: 'not connected', // Update when database is added
+    database: 'not connected',
     emailService: process.env.EMAIL_USER ? 'configured' : 'not configured',
     openaiService: process.env.OPENAI_API_KEY ? 'configured' : 'not configured',
     lastDigest: apiStats.lastGenerated,
-    nextScheduled: null, // Would need scheduler integration
-    environment: process.env.NODE_ENV || 'development'
+    nextScheduled: null,
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    nodeVersion: process.version
   };
   
   res.json(status);
@@ -294,14 +297,15 @@ app.get('/api/docs', (req, res) => {
   res.json(docs);
 });
 
-// Root endpoint
+// Root API endpoint
 app.get('/api', (req, res) => {
   apiStats.totalRequests++;
   res.json({
     message: 'FMT News Digest API',
     version: '1.0.0',
     documentation: `${req.protocol}://${req.get('host')}/api/docs`,
-    health: `${req.protocol}://${req.get('host')}/api/health`
+    health: `${req.protocol}://${req.get('host')}/api/health`,
+    status: 'running'
   });
 });
 
