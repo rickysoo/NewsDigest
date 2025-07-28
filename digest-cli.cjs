@@ -11,7 +11,7 @@ const CONFIG_FILE = path.join(__dirname, 'digest-config.json');
 const DEFAULT_CONFIG = {
     source: 'https://www.freemalaysiatoday.com',
     interval: 480, // 8 hours in minutes (3 times daily)
-    recipients: ['ricky@rickysoo.com'],
+    recipients: ['recipient@domain.com'],
     schedules: ['0,8,16'], // Hours in UTC (8am, 4pm, 12am Malaysia Time)
     enabled: true,
     lastUpdate: new Date().toISOString()
@@ -191,8 +191,8 @@ const commands = {
             const config = loadConfig();
             const testEnv = {
                 ...process.env,
-                EMAIL_USER: 'ricky@rickysoo.com',
-                RECIPIENT_EMAIL: config.recipients[0] || 'ricky@rickysoo.com',
+                EMAIL_USER: process.env.EMAIL_USER || 'your-email@domain.com',
+                RECIPIENT_EMAIL: config.recipients[0] || process.env.RECIPIENT_EMAIL || 'recipient@domain.com',
                 SMTP_HOST: 'mail.rickysoo.com',
                 SMTP_PORT: '465'
             };

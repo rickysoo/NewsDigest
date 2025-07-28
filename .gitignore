@@ -12,12 +12,20 @@ vite.config.ts.*
 *.pid
 digest-service.log
 digest.pid
+digest-background.log
+scheduler-output.log
+scheduler-persistent.log
+watchdog.log
 
 # Credentials and secrets
 credentials.json
 config.json
 digest-config.json
 secrets/
+
+# Shell scripts with hardcoded values (for local use only)
+start-digest-local.sh
+start-scheduler-local.sh
 
 # Email content (may contain personal data)
 emails/
