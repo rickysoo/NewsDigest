@@ -1,6 +1,10 @@
-# FMT News Digest - Standalone Version
+# FMT News Digest
 
 Automated news digest system that scrapes Free Malaysia Today (FMT), generates AI-powered summaries, and emails them on a scheduled basis.
+
+[![Node.js](https://img.shields.io/badge/Node.js-18.0.0%2B-green.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![OpenAI](https://img.shields.io/badge/AI-OpenAI%20GPT--4o-orange.svg)](https://openai.com/)
 
 ## Features
 
@@ -195,14 +199,37 @@ The system supports:
 - Multiple recipients
 - Watchdog monitoring with auto-restart
 
-## Recent Updates (July 27, 2025)
+## Recent Updates (July 28, 2025)
 
 - ✅ **Complete CLI Management System**: 16 commands for full control
 - ✅ **Persistent Configuration**: JSON-based settings storage
 - ✅ **Watchdog Monitoring**: Hourly health checks with auto-restart
-- ✅ **Standalone Package**: Ready for local npm installation
+- ✅ **Production Ready**: Comprehensive documentation and deployment guides
+- ✅ **Git Ready**: Proper licensing, contributing guidelines, and environment setup
 - ✅ **Enhanced Reliability**: Multiple process management scripts
-- ✅ **Comprehensive Documentation**: Installation guides and troubleshooting
+
+## Documentation
+
+- **[Installation & Setup](README.md)** - This file
+- **[Contributing Guidelines](CONTRIBUTING.md)** - Development and contribution guide
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment instructions
+- **[Environment Setup](.env.example)** - Configuration template
+
+## Git Repository Setup
+
+Before pushing to Git, ensure you have:
+
+1. **Created your repository** on GitHub/GitLab
+2. **Updated package.json** with your repository URL
+3. **Configured your environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual credentials
+   ```
+4. **Set up Git remote**:
+   ```bash
+   git remote add origin https://github.com/[username]/fmt-news-digest.git
+   ```
 
 ## Support
 
@@ -213,6 +240,10 @@ For issues or questions:
 4. Test connectivity: `./digest test`
 5. Restart services: `./digest restart`
 
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
 ## License
 
-MIT License - See LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
