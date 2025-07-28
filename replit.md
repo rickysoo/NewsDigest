@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**July 28, 2025 - Repository Cleaned for GitHub Push**
+- Removed all security documentation files (SECURITY_*.md) from public repository
+- Excluded development documentation (DEPLOYMENT.md, GIT_SETUP.md, etc.)
+- Cleaned up development artifacts and build files
+- Enhanced .gitignore to protect sensitive files automatically
+- Moved digest-config.json with real emails to .gitignore protection
+- Repository now contains only essential files for deployment (25 files total)
+- Ready for safe public GitHub hosting with no sensitive data exposure
+
 **July 28, 2025 - Added Comprehensive REST API System**
 - Created full-featured REST API server (api-server.js) with 8 endpoints
 - Built interactive web interface for API testing and monitoring
@@ -25,42 +34,6 @@ Preferred communication style: Simple, everyday language.
 - Maintained package.json as CommonJS while enabling ES6 imports through dynamic import()
 - All npm scripts now work correctly: test, start, and dev commands function properly
 - Successfully tested digest generation and email delivery with fixed module configuration
-
-**July 28, 2025 - Fixed Previous Deployment Issues**
-- Added missing `dev` and `build` scripts to package.json to resolve deployment errors
-- Fixed email SMTP configuration for proper SSL/STARTTLS handling
-- Updated workflow to successfully run digest script in development mode
-- Resolved module type conflicts between CommonJS and ES modules
-- Configured custom mail server (mail.rickysoo.com) with SSL on port 465
-- Successfully tested complete digest generation and email delivery
-
-**July 28, 2025 - Git Repository Preparation Complete**
-- Updated README.md with production-ready documentation and badges
-- Created comprehensive CONTRIBUTING.md for developer guidelines
-- Added detailed DEPLOYMENT.md with production deployment instructions
-- Generated proper LICENSE file (MIT License)
-- Created .env.example template for environment configuration
-- Added GIT_SETUP.md checklist for repository preparation
-- Enhanced documentation with proper cross-references and Git setup instructions
-- Project now fully ready for pushing to Git repositories
-
-**July 27, 2025 - Added Comprehensive CLI Management System**
-- Created complete command-line interface (`digest-cli.cjs`) for system management
-- Added configuration management with persistent JSON storage
-- Implemented process monitoring and control through CLI commands
-- Created watchdog system with hourly monitoring (60-minute intervals)
-- Enhanced system reliability with automatic scheduler restart capabilities
-- CLI supports: source configuration, interval changes, recipient management, testing, logs
-- All system operations now manageable through simple `./digest <command>` syntax
-
-**July 27, 2025 - Simplified to Standalone Email Automation**
-- Removed web dashboard interface and all React/Express dependencies
-- Converted to standalone Node.js email automation system
-- Created reliable background scheduler with `start-digest-background.sh`
-- Added process management scripts for ensuring scheduler reliability
-- Streamlined project to focus solely on FMT news digest automation
-- Maintained 3 times daily schedule: 8am, 4pm, 12am Malaysia Time
-- Enhanced image processing with base64 embedding for reliable email display
 
 ## System Architecture
 
@@ -89,14 +62,6 @@ Preferred communication style: Simple, everyday language.
 - **`./run-scheduler.sh`**: Full process management (start/stop/status)
 - **`node digest-script.js --test`**: Manual digest generation
 - **Process monitoring**: Built-in restart and error handling
-
-## Data Flow
-
-1. **Content Ingestion**: Scheduler triggers NewsService to scrape FMT articles
-2. **AI Processing**: AIService processes articles to generate cohesive digest
-3. **Storage**: Digest saved to database with generated content and metadata
-4. **Distribution**: EmailService sends digest to configured recipients
-5. **Monitoring**: All operations logged for tracking and debugging
 
 ## External Dependencies
 

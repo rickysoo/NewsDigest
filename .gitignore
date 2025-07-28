@@ -21,6 +21,7 @@ watchdog.log
 credentials.json
 config.json
 digest-config.json
+digest-config.json.bak
 secrets/
 
 # Shell scripts with hardcoded values (for local use only)
@@ -34,13 +35,48 @@ output/
 # Development artifacts
 attached_assets/
 
-# Private documentation
-SECURITY_STATUS.md
-SECURITY_AUDIT.md
-GITHUB_DEPLOYMENT.md
+# Private documentation and development files
+SECURITY_*.md
+SECURITY*.md
+*SECURITY*.md
+GIT_SETUP.md
+DEPLOYMENT.md
+WINDOWS_INSTALLATION.md
+API-README.md
+README-standalone.md
+CONTRIBUTING.md
+INSTALL.md
 replit.md
+
+# Development and internal files
+package-*.json
+api-package.json
+digest-package.json
+package.json.backup
+temp-*.js
+add-scripts.js
+npm-run-dev.js
+
+# Build and development directories
+build/
+dev/
+public/
+
+# Archive files
+*.tar.gz
+*.zip
+
+# CLI executable (keep source, exclude compiled)
+digest
+
+# Private development files
+replit.md
+setup-local.sh
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Cache directories
+.cache/
