@@ -214,19 +214,34 @@ The system supports:
 - **[Contributing Guidelines](CONTRIBUTING.md)** - Development and contribution guide
 - **[Deployment Guide](DEPLOYMENT.md)** - Production deployment instructions
 - **[Environment Setup](.env.example)** - Configuration template
+- **[Security Checklist](SECURITY_CHECKLIST.md)** - **MUST READ** before pushing to Git
 
 ## Git Repository Setup
 
-Before pushing to Git, ensure you have:
+⚠️ **SECURITY WARNING**: This project contains sensitive data that must not be exposed on GitHub.
 
-1. **Created your repository** on GitHub/GitLab
-2. **Updated package.json** with your repository URL
-3. **Configured your environment**:
+**BEFORE pushing to Git, read [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) first!**
+
+Critical files to protect:
+- `.env` - Contains your API keys and passwords
+- `digest-config.json` - Contains real email addresses
+- `*.log` files - May contain sensitive runtime data
+
+Steps to prepare for Git:
+
+1. **Read security checklist**: [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)
+2. **Created your repository** on GitHub/GitLab
+3. **Configure environment safely**:
    ```bash
    cp .env.example .env
-   # Edit .env with your actual credentials
+   cp digest-config.example.json digest-config.json
+   # Edit with your actual credentials (these files won't be committed)
    ```
-4. **Set up Git remote**:
+4. **Verify sensitive files are excluded**:
+   ```bash
+   git status  # Should NOT show .env or digest-config.json
+   ```
+5. **Set up Git remote**:
    ```bash
    git remote add origin https://github.com/[username]/fmt-news-digest.git
    ```

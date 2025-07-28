@@ -16,6 +16,7 @@ digest.pid
 # Credentials and secrets
 credentials.json
 config.json
+digest-config.json
 secrets/
 
 # Email content (may contain personal data)

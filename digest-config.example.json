@@ -1,0 +1,12 @@
+{
+  "source": "https://www.freemalaysiatoday.com",
+  "interval": 480,
+  "recipients": [
+    "recipient@example.com"
+  ],
+  "schedules": [
+    "0,8,16"
+  ],
+  "enabled": true,
+  "lastUpdate": "2025-01-01T00:00:00.000Z"
+}

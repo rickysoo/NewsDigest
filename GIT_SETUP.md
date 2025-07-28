@@ -9,11 +9,13 @@ Follow this checklist before pushing your FMT News Digest project to Git.
 - [ ] Cloned repository or initialized git locally
 - [ ] Added remote origin URL
 
-### 2. Environment Security
+### 2. Environment Security ⚠️ CRITICAL
 - [ ] Created `.env` file locally (DO NOT commit this)
 - [ ] Verified `.env` is in `.gitignore`
-- [ ] Copied `.env.example` for other contributors
+- [ ] Verified `digest-config.json` is in `.gitignore` (contains email addresses)
+- [ ] Copied `.env.example` and `digest-config.example.json` for contributors
 - [ ] All sensitive data removed from code files
+- [ ] **READ SECURITY_CHECKLIST.md FIRST** ⚠️
 
 ### 3. Documentation Complete
 - [ ] README.md updated with current features
