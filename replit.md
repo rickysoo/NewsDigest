@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**July 28, 2025 - Fixed Deployment Issues**
+- Added missing `dev` and `build` scripts to package.json to resolve deployment errors
+- Fixed email SMTP configuration for proper SSL/STARTTLS handling
+- Updated workflow to successfully run digest script in development mode
+- Resolved module type conflicts between CommonJS and ES modules
+- Application now runs successfully but requires proper Gmail App Password configuration
+
 **July 28, 2025 - Git Repository Preparation Complete**
 - Updated README.md with production-ready documentation and badges
 - Created comprehensive CONTRIBUTING.md for developer guidelines

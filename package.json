@@ -12,7 +12,9 @@
     "test": "node digest-script.js --test",
     "setup": "chmod +x digest start-digest-background.sh watchdog-scheduler.sh start-watchdog.sh",
     "scheduler": "./start-digest-background.sh",
-    "watchdog": "./start-watchdog.sh"
+    "watchdog": "./start-watchdog.sh",
+    "dev": "node digest-script.mjs --test",
+    "build": "echo \"No build step required for Node.js automation script\""
   },
   "keywords": [
     "news",

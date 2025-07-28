@@ -53,7 +53,7 @@ const openai = new OpenAI({ apiKey: config.openaiApiKey });
 const transporter = nodemailer.createTransport({
   host: config.smtpHost,
   port: config.smtpPort,
-  secure: true, // SSL for port 465
+  secure: config.smtpPort === 465, // SSL for port 465, STARTTLS for 587
   auth: {
     user: config.emailUser,
     pass: config.emailPass,

@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+/**
+ * Development script to simulate npm run dev
+ * Runs the digest script in test mode
+ */
+
+const { spawn } = require('child_process');
+
+console.log('🚀 Starting FMT News Digest in development mode...');
+
+const child = spawn('node', ['digest-script.mjs', '--test'], {
+  stdio: 'inherit',
+  env: process.env
+});
+
+child.on('exit', (code) => {
+  if (code === 0) {
+    console.log('✅ Development mode completed successfully');
+  } else {
+    console.error('❌ Development mode failed');
+    process.exit(code);
+  }
+});
